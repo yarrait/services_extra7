@@ -1,0 +1,266 @@
+<?php
+
+function _content_resource_access($op = 'view', $args = array()) {
+ switch ($op) {
+    case 'view':
+     return user_access('administer nodes');
+     break;
+    case 'create':
+     return user_access('administer nodes');
+     break;
+    }
+}
+
+function content_resources() {
+  $resource = array(
+    'retrieve' => array(
+       'callback' => '_content_resource_retrieve',
+         'args' => array(
+           array(
+             'name' => 'nid',
+             'optional' => FALSE,
+             'source' => array('path' => 0),
+             'type' => 'int',
+             'description' => 'The nid of the node to get',
+           ),
+         ),
+        'access callback' => '_content_resource_access',
+        'access arguments' => array('view'),
+        'access arguments append' => TRUE,
+    ),
+    'create' => array(
+      'callback' => '_content_resource_create',
+        'args' => array(
+          array(
+            'name' => 'node_data',
+            'optional' => FALSE,
+            'source' => 'data',
+            'description' => 'The content data to filter',
+            'type' => 'array',
+          ),
+        ),
+        'access callback' => '_content_resource_access',
+        'access arguments' => array('create'),
+        'access arguments append' => TRUE,
+    ),
+    'index' => array(
+      'callback' => '_content_resource_index',
+        'args' => array(
+          array(
+            'name' => 'page',
+            'optional' => TRUE,
+            'type' => 'int',
+            'description' => 'The zero-based index of the page to get, defaults to 0.',
+            'default value' => 0,
+            'source' => array('param' => 'page'),
+          ),
+          array(
+            'name' => 'fields',
+            'optional' => TRUE,
+            'type' => 'string',
+            'description' => 'The fields to get.',
+            'default value' => '*',
+            'source' => array('param' => 'fields'),
+          ),
+          array(
+            'name' => 'parameters',
+            'optional' => TRUE,
+            'type' => 'array',
+            'description' => 'Parameters array',
+            'default value' => array(),
+            'source' => array('param' => 'parameters'),
+          ),
+          array(
+            'name' => 'pagesize',
+            'optional' => TRUE,
+            'type' => 'init',
+            'description' => 'Number of records to get per page.',
+            'default value' => variable_get('services_node_index_page_size', 20),
+            'source' => array('param' => 'pagesize'),
+          ),
+        ),
+        'access arguments' => array('administer nodes'),
+        'access arguments append' => FALSE,
+      ),
+  );
+  return $resource;
+}
+
+function _content_resource_retrieve($nid) {
+  $node = node_load($nid);
+  if(empty($node))
+   return services_error('Node nid '. $nid .' not found', 404);
+
+  if ($node) {
+    $uri = entity_uri('node', $node);
+    $node->path = url($uri['path'], array('absolute' => TRUE));
+    unset($node->uri);
+  }
+  return $node;
+}
+
+function _content_resource_index($page, $fields, $parameters, $page_size){
+  $no_records = db_query('Select count(*) from node')->fetchField();
+  $results = array();
+  $query = db_select('node', 'n');
+  $query -> leftJoin('users', 'u', 'n.uid = u.uid');
+  $query -> fields('n',array('nid','vid','type','language','title','uid'))
+         -> fields('u',array('name'))
+         -> fields('n',array('status','created','changed','comment','promote','sticky','tnid','translate'));
+  $query -> orderBy('changed','DESC');
+   
+  $result = $query->execute();
+  while($record = $result->fetchAssoc()){
+               $results[] = $record;
+  }
+  $page_size = 10;
+  $start_index = 0;
+  $page_no = 0;
+  $last_index = 10;
+  for($i = 0; $i<count($results); $i= $i+10) {
+    $page_node[$page_no] = array_slice($results,$start_index,$last_index);
+    $start_index = $start_index + $page_size;
+    $last_index = $last_index + $page_size;
+    $page_no++;
+  }
+  $content['total'] = $no_records;
+  $content['contents'] = $page_node[$page]; 
+  return $content;
+}
+
+function _content_resource_create($node_data){
+  $return =array();
+  $option = $node_data['node']['option'];
+  $filter = $node_data['node']['filter'];
+  $page = $node_data['node']['page'];
+  $return =array();
+  if (!empty($option) && !empty($filter)){
+    if ($option=="status") {
+      switch ($filter) {
+        case "published":
+          $query = db_select('node', 'n');
+	  $query -> leftJoin('users', 'u', 'n.uid = u.uid');
+	  $query -> fields('n',array('nid','vid','type','language','title','uid'))
+	         -> fields('u',array('name'))
+		 -> fields('n',array('status','created','changed','comment','promote','sticky','tnid','translate'))
+	         -> orderBy('changed','DESC')
+                 -> condition('n.status', 1, '=')
+                 -> condition('u.uid', 0, '!=');
+          $result = $query->execute();
+          while ($record = $result->fetchAssoc()) {
+            $results[]=$record;
+          } 
+          break;
+   	  case "not published":
+            $query = db_select('node', 'n');
+	    $query -> leftJoin('users', 'u', 'n.uid = u.uid');
+	    $query -> fields('n',array('nid','vid','type','language','title','uid'))
+	           -> fields('u',array('name'))
+		   -> fields('n',array('status','created','changed','comment','promote','sticky','tnid','translate'))
+	           -> orderBy('changed','DESC')
+                   -> condition('n.status', 0, '=')
+                   -> condition('u.uid', 0, '!=');
+            $result = $query->execute();
+            while ($record = $result->fetchAssoc()) {
+                  $results[] = $record;
+            }
+            break;
+   	  case "promoted":
+            $query = db_select('node', 'n');
+	    $query -> leftJoin('users', 'u', 'n.uid = u.uid');
+	    $query -> fields('n',array('nid','vid','type','language','title','uid'))
+	           -> fields('u',array('name'))
+		   -> fields('n',array('status','created','changed','comment','promote','sticky','tnid','translate'))
+	           -> orderBy('changed','DESC')
+                   -> condition('n.promote', 1, '=')
+                   -> condition('u.uid', 0, '!=');
+            $result = $query->execute();
+            while ($record = $result->fetchAssoc()) {
+                  $results[] = $record;
+   	    }
+            break;
+          case "not promoted":
+            $query = db_select('node', 'n');
+	    $query -> leftJoin('users', 'u', 'n.uid = u.uid');
+	    $query -> fields('n',array('nid','vid','type','language','title','uid'))
+	           -> fields('u',array('name'))
+		   -> fields('n',array('status','created','changed','comment','promote','sticky','tnid','translate'))
+	           -> orderBy('changed','DESC')
+                   -> condition('n.promote', 0, '=')
+                   -> condition('u.uid', 0, '!=');
+            $result = $query->execute();
+            while ($record = $result->fetchAssoc()) {
+                  $results[] = $record;
+   	    }
+            break;
+          case "sticky":
+   	    $query = db_select('node', 'n');
+	    $query -> leftJoin('users', 'u', 'n.uid = u.uid');
+	    $query -> fields('n',array('nid','vid','type','language','title','uid'))
+	           -> fields('u',array('name'))
+		   -> fields('n',array('status','created','changed','comment','promote','sticky','tnid','translate'))
+	           -> orderBy('changed','DESC')
+                   -> condition('n.sticky', 1, '=')
+                   -> condition('u.uid', 0, '!=');
+            $result = $query->execute();
+            while ($record = $result->fetchAssoc()) {
+                  $results[] = $record;
+   	    }
+           break;
+          case "not sticky":
+   	    $query = db_select('node', 'n');
+	    $query -> leftJoin('users', 'u', 'n.uid = u.uid');
+	    $query -> fields('n',array('nid','vid','type','language','title','uid'))
+	           -> fields('u',array('name'))
+		   -> fields('n',array('status','created','changed','comment','promote','sticky','tnid','translate'))
+	           -> orderBy('changed','DESC')
+                   -> condition('n.sticky', 0, '=')
+                   -> condition('u.uid', 0, '!=');
+            $result = $query->execute();
+            while ($record = $result->fetchAssoc()) {
+                  $results[] = $record;
+   	    }
+           break;
+   	}
+     }
+     if ($option == "type") {
+        $no_records = db_query("Select count(*) from node WHERE type=:filter",array(':filter' => $filter))->fetchField();
+        if($no_records) { 
+   	  $query = db_select('node', 'n');
+	  $query -> leftJoin('users', 'u', 'n.uid = u.uid');
+	  $query -> fields('n',array('nid','vid','type','language','title','uid'))
+	         -> fields('u',array('name'))
+	         -> fields('n',array('status','created','changed','comment','promote','sticky','tnid','translate'))
+	         -> orderBy('changed','DESC')
+                 -> condition('n.type',$filter, '=')
+                 -> condition('u.uid', 0, '!=');
+          $result = $query->execute();
+          while ($record = $result->fetchAssoc()) {
+            $results[] = $record;
+   	  }   
+        }
+        else {
+          return services_error("There is no node with type ".$filter,406,null);
+        }
+      }   
+    }
+    else {
+      return services_error("node[option] or node[filter] field is requried", 406,array('form_errors' => "node[option] or node[filter] field is requried."));
+    }
+  if (empty($results))
+      return services_error("There is no post available for ".$filter, 404, null);
+
+  $page_size = 10;
+  $start_index = 0;
+  $page_no = 0;
+  $last_index = 10;
+  for ($index = 0; $index<count($results); $index = $index + $page_size) {
+    $page_content[$page_no] = array_slice($results,$start_index,$last_index);
+    $start_index = $start_index + $page_size;
+    $last_index = $last_index + $page_size;
+    $page_no++;
+  }
+  $content['total'] = count($results);
+  $content['contents'] = $page_content[$page];
+  return $content;
+}
