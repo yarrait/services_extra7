@@ -224,6 +224,7 @@ function _backup_migrate_backup_restore_or_delete($data) {
   }
 
   timer_start('backup_migrate_restore');
+  $file = $file. ".mysql.gz";
 
   // If not in 'safe mode', increase the maximum execution time:
   if (!ini_get('safe_mode') && ini_get('max_execution_time') < variable_get('backup_migrate_backup_max_time', 1200)) {
@@ -241,7 +242,7 @@ function _backup_migrate_backup_restore_or_delete($data) {
 
   if (!is_object($file)) {
     // Load the file from the destination.
-    $file = backup_migrate_destination_get_file($destination_id, $file);
+    $file = backup_migrate_destination_get_file($destination_id, $file); 
     if (!$file) {
       _backup_migrate_message("Could not restore because the file could not be loaded from the destination.", array(), 'error');
       backup_migrate_cleanup();
@@ -250,7 +251,7 @@ function _backup_migrate_backup_restore_or_delete($data) {
   }
 
   // Filter the file and perform the restore.
-  $file = backup_migrate_filters_restore($file, $settings);
+  $file = backup_migrate_filters_restore($file, $settings); 
   if (!$file) {
     if (_backup_migrate_check_timeout()) {
       backup_migrate_restore_fail('Could not perform the restore because the script timed out. Try increasing your PHP <a href="!url">max_execution_time setting</a>.', array('!url' => 'http://www.php.net/manual/en/info.configuration.php#ini.max-execution-time'), 'error');
@@ -263,10 +264,10 @@ function _backup_migrate_backup_restore_or_delete($data) {
   }
 
   $time = timer_stop('backup_migrate_restore');
-  if ($file) {
-    $destination = backup_migrate_get_destination($destination_id);
-    $source = $settings->get_source_name();
-    $dest = $destination->get_name();
+  if ($file) { 
+    $destination = backup_migrate_get_destination($destination_id); 
+    $source = $settings->get_source_name(); 
+    $dest = $destination->name; 
     $time = $time['time'];
 
     $message['backup_migrate'] = array(
