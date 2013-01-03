@@ -123,7 +123,14 @@ function _backup_migrate_destination_index() {
   $out = '';
   if ($type = backup_migrate_crud_type_load('destination')) { 
     $out = $class->dest_get_list();  
-    return $out;
+    if($out) {
+      foreach ($out as $key => $val) {
+        if ($val['id'] != 'db') {
+          $destinations[] = $val;
+        }
+      }
+    } 
+    return $destinations;
   } else {
     return services_error("Please try again..",406,null);
   }
@@ -208,8 +215,12 @@ function _backup_migrate_backup_restore_or_delete($data) {
   $settings = array();
 
   if($data['data']['op'] == 'delete') { 
+    $file = $file. ".mysql.gz";
     backup_migrate_destination_delete_file($destination_id, $file);
-    return "Database backup file deleted: ". "$file";
+    $message['backup_migrate'] = array(
+      'message' => "Database backup file deleted: ". "$file",
+    );
+    return $message;
   }
 
   timer_start('backup_migrate_restore');
