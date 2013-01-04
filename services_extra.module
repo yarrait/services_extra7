@@ -14,6 +14,7 @@
   module_load_include('inc', 'services_extra', 'resources/site_configuration');
   module_load_include('inc', 'services_extra', 'resources/backup_migrate');
   module_load_include('inc', 'services_extra', 'resources/backup_migrate_detination');
+  module_load_include('inc', 'services_extra', 'resources/is_module_installed');
 
 
 function services_extra_services_resources() {
@@ -32,6 +33,7 @@ function services_extra_services_resources() {
   $resources['site_configuration'] = site_configuration_resources();
   $resources['backup_migrate'] = backup_migrate_resources();
   $resources['backup_migrate_destination'] = backup_migrate_destination_resources();
+  $resources['is_module_installed'] = is_module_installed_resources();
  return $resources;
 }
 

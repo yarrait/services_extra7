@@ -117,7 +117,6 @@ class backup_migrate_destination_custom extends backup_migrate_destination {
  */
 
 function _backup_migrate_destination_index() { 
-
   module_load_include('inc', 'backup_migrate', 'includes/crud');
   $class = new backup_migrate_destination_custom;
   $out = '';
@@ -205,11 +204,11 @@ function _backup_migrate_destination_display_files($destination_id = NULL) {
  *   success message or service error.
  */
 function _backup_migrate_backup_restore_or_delete($data) { 
-  include_once(DRUPAL_ROOT . '/' . drupal_get_path('module', 'backup_migrate') . '/backup_migrate.module');
   module_load_include('inc', 'backup_migrate', 'includes/filters'); 
   module_load_include('inc', 'backup_migrate', 'includes/crud'); 
   module_load_include('inc', 'backup_migrate', 'includes/destinations'); 
 
+  global $user;
   $destination_id = $data['data']['destination_id'];
   $file = $data['data']['filename'];
   $settings = array();
@@ -227,7 +226,7 @@ function _backup_migrate_backup_restore_or_delete($data) {
   $file = $file. ".mysql.gz";
 
   // If not in 'safe mode', increase the maximum execution time:
-  if (!ini_get('safe_mode') && ini_get('max_execution_time') < variable_get('backup_migrate_backup_max_time', 1200)) {
+  if (!ini_get('safe_mode') && strpos(ini_get('disable_functions'), 'set_time_limit') === FALSE && ini_get('max_execution_time') < variable_get('backup_migrate_backup_max_time', 1200)) {
     set_time_limit(variable_get('backup_migrate_restore_max_time', 1200));
   }
 
@@ -267,7 +266,7 @@ function _backup_migrate_backup_restore_or_delete($data) {
   if ($file) { 
     $destination = backup_migrate_get_destination($destination_id); 
     $source = $settings->get_source_name(); 
-    $dest = $destination->name; 
+    $dest = $destination->get_name(); 
     $time = $time['time'];
 
     $message['backup_migrate'] = array(
