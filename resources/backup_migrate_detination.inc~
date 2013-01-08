@@ -215,7 +215,11 @@ function _backup_migrate_backup_restore_or_delete($data) {
 
   if($data['data']['op'] == 'delete') { 
     $file = $file. ".mysql.gz";
-    backup_migrate_destination_delete_file($destination_id, $file);
+    $flag = 0;
+    if($flag == 0) {
+      backup_migrate_destination_delete_file($destination_id, $file);
+      $flag = 1;
+    }
     $message['backup_migrate'] = array(
       'message' => "Database backup file deleted: ". "$file",
     );
