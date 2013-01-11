@@ -60,123 +60,62 @@ function _form_content_resources_retrieve($type) {
   $types = node_type_get_types();
   $type = isset($type) ? str_replace('-', '_', $type) : NULL;
 
+
+//  $my_content_type_fields = field_info_instances("node", $type);
+//  print_r($my_content_type_fields); 
+
+//  $my_content_type_fields = drupal_get_schema($type);
+//  print_r($my_content_type_fields); 
+
+
+/*  global $user; 
+  $form = array();
+  $form_state = array();
+  $node = new stdClass();
+  $node->uid = $user->uid;
+  $node->name = $user->name;
+  $node->type = $type;
+  $node->language = 'und';
+  $form_state['rebuild'] = true;
+//  $form_state['method'] = 'post'; 
+  $form = drupal_get_form($type.'_node_form', $node);
+  drupal_prepare_form($type.'_node_form', $form, $form_state);
+  dpm($form); exit;
+*/
+
+
+
   // If a node type has been specified, validate its existence.
   if (isset($types[$type]) && node_access('create', $type)) {
     // Initialize settings:
-    $node = array(
-      'uid' => $user->uid,
-      'name' => (isset($user->name) ? $user->name : ''),
-      'type' => $type,
-      'language' => '',
-    );
+    $node = new stdClass();
+    $node->uid = $user->uid;
+    $node->name = $user->name;
+    $node->type = $type;
+    $node->language = 'und';
 
-    $form = drupal_get_form($type.'_node_form', (object) $node);
-
-    drupad_form_apply_pre_render($form);
-
-    drupad_convert_form_options_to_strict_array($form);
-    drupad_convert_form_files_uri_to_url($form);
-    drupad_remove_form_groups_recursion($form);
-
-    return $form;
-  }
+    $form = drupal_get_form($type.'_node_form', $node);
+    if($form) {
+      $field_list = array();
+      $field_list['title'] = $form['title'];
+      foreach($form as $key => $val) { //print_r($form['body']); exit;
+         if($key == 'title' || $key == 'body' || strpos($key, 'field') > -1) { 
+           if($val['und'][0]['value']) { 
+             $field_list[$key] = $val['und']['0']['value'];
+           }
+           else if($val['und']) {
+             $field_list[$key] = $val['und'];
+           }
+         }
+       }
+      print_r($field_list); exit;
+      return $form; 
+    } 
+ }
    
   return FALSE;
 }
 
-/**
- * Applies the #pre_render callback recursively to a form and its children
- */
-function drupad_form_apply_pre_render(&$item) {
-  if (isset($item['#pre_render']) && is_array($item['#pre_render'])) {
-    foreach ($item['#pre_render'] as $function) {
-      if (function_exists($function)) {
-        $item = $function($item);
-      }
-    }
-  }
-  $children_keys = element_children($item);
-  foreach ($children_keys as $child_key) {
-    drupad_form_apply_pre_render($item[$child_key]);
-  }
-}
-
-/**
- * Converts form component's options to strict array
- *
- * Walk through each form component recursively for #options array.
- * Converts #options array to a strict array (not a associative array)
- * in order to keep the order revelant, as hashes don't have specific order.
- *
- * Also replace 0 value as "0" (string) so that it isn't interpreted as BOOL value
- * by Objective-C.
- *
- * @param &$form
- */
-function drupad_convert_form_options_to_strict_array(&$item) {
-  $children_keys = element_children($item);
-  foreach ($children_keys as $child_key) {
-    // Reached an optionable component (select or radios)
-    if (isset($item[$child_key]['#options']) && is_array($item[$child_key]['#options'])) {
-      $options = array();
-      // Replaces #options with a strict array since
-      // hashes don't keep order outside of PHP
-      foreach ($item[$child_key]['#options'] as $key => $value) {
-        if (is_object($value)) {
-          $option = $value->option;
-          reset($option); // Shouldn't be useful
-          $options[] = array(key($option) => current($option));
-        }
-        else {
-          // Dirty hack, but no choice
-          if ($value === 0 && $key === 0) {
-            $key = "0";
-          }
-          $options[] = array((string) $key => $value);
-        }
-      }
-      // Shiny new options ordered
-      $item[$child_key]['#options'] = $options;
-    }
-    // Continue deeper in the form item's structure
-    drupad_convert_form_options_to_strict_array($item[$child_key]);
-  }
-}
-
-/**
- * Creates URL for managed_file which are refered by URI
- *
- * URI aren't really useful on iOS for now
- */
-function drupad_convert_form_files_uri_to_url(&$item) {
-  $children = element_children($item);
-  foreach ($children as $key) {
-    if (isset($item[$key]['#type']) && $item[$key]['#type'] == 'managed_file' && isset($item[$key]['#file']) && isset($item[$key]['#file']->uri)) {
-      $item[$key]['#file']->drupad_url = file_create_url($item[$key]['#file']->uri);
-    }
-    drupad_convert_form_files_uri_to_url($item[$key]);
-  }
-}
 
 
-/**
- * @file
- * Drupad forms handling file
- *
- * This file makes managing FAPI forms easier on iOS side
- * Functions in this file are only intended as helpers or
- * replacements for Drupal core functions that don't do
- * exactly what we would except for us, which is most of the
- * time not implying the theme layer.
- */
-
-function drupad_remove_form_groups_recursion(&$item) {
-  $children = element_children($item);
-  foreach ($children as $key) {
-    if (isset($item[$key]['#groups'])) {
-      unset($item[$key]['#groups']);
-    }
-    drupad_remove_form_groups_recursion($item[$key]);
-  }
-}
 
