@@ -60,31 +60,6 @@ function _form_content_resources_retrieve($type) {
   $types = node_type_get_types();
   $type = isset($type) ? str_replace('-', '_', $type) : NULL;
 
-
-//  $my_content_type_fields = field_info_instances("node", $type);
-//  print_r($my_content_type_fields); 
-
-//  $my_content_type_fields = drupal_get_schema($type);
-//  print_r($my_content_type_fields); 
-
-
-/*  global $user; 
-  $form = array();
-  $form_state = array();
-  $node = new stdClass();
-  $node->uid = $user->uid;
-  $node->name = $user->name;
-  $node->type = $type;
-  $node->language = 'und';
-  $form_state['rebuild'] = true;
-//  $form_state['method'] = 'post'; 
-  $form = drupal_get_form($type.'_node_form', $node);
-  drupal_prepare_form($type.'_node_form', $form, $form_state);
-  dpm($form); exit;
-*/
-
-
-
   // If a node type has been specified, validate its existence.
   if (isset($types[$type]) && node_access('create', $type)) {
     // Initialize settings:
@@ -98,7 +73,7 @@ function _form_content_resources_retrieve($type) {
     if($form) {
       $field_list = array();
       $field_list['title'] = $form['title'];
-      foreach($form as $key => $val) { //print_r($form['body']); exit;
+      foreach($form as $key => $val) { 
          if($key == 'title' || $key == 'body' || strpos($key, 'field') > -1) { 
            if($val['und'][0]['value']) { 
              $field_list[$key] = $val['und']['0']['value'];
@@ -108,14 +83,13 @@ function _form_content_resources_retrieve($type) {
            }
          }
        }
-      print_r($field_list); exit;
-      return $form; 
+      if($field_list) {
+        foreach($field_list as $k1 => $v1) {
+           $field_list['form_fields'][] = $k1;
+        }
+      } 
+      return $field_list; 
     } 
  }
-   
   return FALSE;
 }
-
-
-
-
