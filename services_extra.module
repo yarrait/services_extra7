@@ -1,6 +1,7 @@
 <?php
 
   module_load_include('inc', 'services_extra', 'resources/watchdog');
+  module_load_include('inc', 'services_extra', 'resources/system_info');
   module_load_include('inc', 'services_extra', 'resources/user_permission');
   module_load_include('inc', 'services_extra', 'resources/vocabulary_term');
   module_load_include('inc', 'services_extra', 'resources/content_type');
@@ -20,25 +21,28 @@
   module_load_include('inc', 'services_extra', 'resources/is_module_installed');
 
 
-function services_extra_services_resources() {
-  $resources = array();
-  $resources['watchdog'] = watchdog_resources();
-  $resources['user_permission'] = user_permission_resources();
-  $resources['vocabulary_term'] = vocabulary_term_resources();
-  $resources['content_type'] = content_type_resources();
-  $resources['content'] = content_resources();
-  $resources['role'] = role_resources();
-  $resources['user_update'] = user_update_resources();
-  $resources['content_update'] = content_update_resources();
-  $resources['vocabulary'] = vocabulary_resources();
-  $resources['comments'] = comments_resources();
-  $resources['user_filter'] = user_filter_resources();
-  $resources['site_configuration'] = site_configuration_resources();
-  $resources['form_content'] = form_content_resources();
-  if(module_exists('backup_migrate')) {
-    $resources['backup_migrate'] = backup_migrate_resources();
-    $resources['backup_migrate_destination'] = backup_migrate_destination_resources();
+  function services_extra_services_resources() 
+  {
+    $resources = array();
+    $resources['watchdog'] = watchdog_resources();
+    $resources['system_info'] = system_info_resources();
+    $resources['user_permission'] = user_permission_resources();
+    $resources['vocabulary_term'] = vocabulary_term_resources();
+    $resources['content_type'] = content_type_resources();
+    $resources['content'] = content_resources();
+    $resources['role'] = role_resources();
+    $resources['user_update'] = user_update_resources();
+    $resources['content_update'] = content_update_resources();
+    $resources['vocabulary'] = vocabulary_resources();
+    $resources['comments'] = comments_resources();
+    $resources['user_filter'] = user_filter_resources();
+    $resources['site_configuration'] = site_configuration_resources();
+    $resources['form_content'] = form_content_resources();
+    if(module_exists('backup_migrate')) 
+    {
+      $resources['backup_migrate'] = backup_migrate_resources();
+      $resources['backup_migrate_destination'] = backup_migrate_destination_resources();
+    }
+    $resources['is_module_installed'] = is_module_installed_resources();
+    return $resources;
   }
-  $resources['is_module_installed'] = is_module_installed_resources();
- return $resources;
-}
