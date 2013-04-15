@@ -1,5 +1,6 @@
 name = services_extra
 description = Extra Services required for Druproid Android app
+version = 7.x-1.0
 core = 7.x
 dependencies[] = services
 package = services_extra

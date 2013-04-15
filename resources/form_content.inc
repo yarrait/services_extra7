@@ -53,7 +53,9 @@ function form_content_resources() {
  * @return
  *   form structure
  */
-function _form_content_resources_retrieve($type) { 
+function _form_content_resources_retrieve($type) 
+{ 
+ return getNodeField($type);
   module_load_include('inc', 'node', 'node.pages');
   global $user;
 
@@ -88,8 +90,36 @@ function _form_content_resources_retrieve($type) {
            $field_list['form_fields'][] = $k1;
         }
       } 
+
       return $field_list; 
     } 
- }
+  }
+
   return FALSE;
+}
+
+function getNodeField($type)
+{
+  $query = new EntityFieldQuery();
+$query->entityCondition('entity_type', 'node')
+  ->entityCondition('bundle', $type);
+//  ->propertyCondition('status', 1);
+//  ->fieldCondition('field_story_image', 'fid', 'NULL', '!=');
+$result = $query->execute();
+ 
+if (isset($result['node'])) {
+    $page = $result['node'];
+ 
+    // At first we need to get field's id. If you already know field id, you can ommit this step
+    // Get all fields attached to a given node type
+    $fields = field_info_instances('node', $type);
+    print_r($fields); exit;
+    $field_id = $fields['field_student_name']['field_id'];
+
+    return $fields;
+    $news_items_nids = array_keys($result['node']);
+    $news_items = entity_load('node', $news_items_nids);
+
+    return $news_items;
+   }
 }

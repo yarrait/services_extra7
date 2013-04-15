@@ -76,3 +76,21 @@ function _backup_migrate_index() {
   return $list;
 }
 
+function _backup_migrate_quickbackup_create($quick_backup)
+{
+  backup_migrate_include('profiles', 'destinations');
+
+  if (user_access('perform backup')) {
+    $form_state['values']['profile_id'] = $quick_backup['profile_id'];
+    $form_state['values']['source_id'] = $quick_backup['source_id'];
+    $form_state['values']['destination_id'] = $quick_backup['destination_id'];
+    $form_state['values']['submit'] = 'Backup now';
+    $form_state['values']['op'] = t('Backup now');
+    
+    drupal_form_submit('backup_migrate_ui_manual_backup', $form_state);
+    if ($errors = form_get_errors()) {
+      return  services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
+    }  
+    return TRUE;     
+  }
+}

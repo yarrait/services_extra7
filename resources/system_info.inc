@@ -16,7 +16,18 @@ function system_info_resources() {
   return $resource;
 }
 
-function _system_info_resource_index($page, $fields, $parameters, $page_size) { 
+function _system_info_resource_index() { 
+
+  //getting version of drupal
   $var['version'] = VERSION;
+
+  //getting version of service extra module
+  $services_extra = system_get_info('module', 'services_extra');
+  $var['services_extra_version'] = $services_extra['version'];
+
+  $druproid_notifications = system_get_info('module', 'druproid_notifications');
+  $var['druproid_notifications_version'] = $druproid_notifications['version'];
+
+//drupal_parse_info_file
   return $var;
 }

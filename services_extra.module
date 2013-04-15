@@ -21,7 +21,7 @@
   module_load_include('inc', 'services_extra', 'resources/is_module_installed');
 
 
-  function services_extra_services_resources() 
+  function services_extra_services_resources()
   {
     $resources = array();
     $resources['watchdog'] = watchdog_resources();

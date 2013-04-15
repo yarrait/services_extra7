@@ -17,7 +17,7 @@ function _role_resource_access($op = 'view', $args = array()) {
   }
 }
 
-function role_resources() { 
+function role_resources() { print_r("hello"); exit;
   $resource = array(
     'retrieve' => array(
       'callback' => '_role_resource_retrieve',

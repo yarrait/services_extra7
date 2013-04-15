@@ -215,11 +215,7 @@ function _backup_migrate_backup_restore_or_delete($data) {
 
   if($data['data']['op'] == 'delete') { 
     $file = $file. ".mysql.gz";
-    $flag = 0;
-    if($flag == 0) {
-      backup_migrate_destination_delete_file($destination_id, $file);
-      $flag = 1;
-    }
+    backup_migrate_destination_delete_file($destination_id, $file);
     $message['backup_migrate'] = array(
       'message' => "Database backup file deleted: ". "$file",
     );
@@ -230,7 +226,7 @@ function _backup_migrate_backup_restore_or_delete($data) {
   $file = $file. ".mysql.gz";
 
   // If not in 'safe mode', increase the maximum execution time:
-  if (!ini_get('safe_mode') && strpos(ini_get('disable_functions'), 'set_time_limit') === FALSE && ini_get('max_execution_time') < variable_get('backup_migrate_backup_max_time', 1200)) {
+  if (!ini_get('safe_mode') && strpos(ini_get('disable_functions'), 'set_time_limit') === FALSE && ini_get('max_execution_time') < variable_get       ('backup_migrate_backup_max_time', 1200)) {
     set_time_limit(variable_get('backup_migrate_restore_max_time', 1200));
   }
 
