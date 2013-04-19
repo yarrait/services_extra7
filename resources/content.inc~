@@ -128,7 +128,7 @@ function _content_resource_index($page, $fields, $parameters, $page_size){
   return $content;
 }
 
-function _content_resource_create($node_data){ 
+function _content_resource_create($node_data){ print_r($node_data); exit;
   $return =array();
   $option = $node_data['node']['option'];
   $filter = $node_data['node']['filter'];

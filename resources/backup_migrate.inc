@@ -77,20 +77,42 @@ function _backup_migrate_index() {
 }
 
 function _backup_migrate_quickbackup_create($quick_backup)
-{
-  backup_migrate_include('profiles', 'destinations');
+{ 
+  include_once(DRUPAL_ROOT . '/' . drupal_get_path('module', 'backup_migrate') . '/backup_migrate.module');
+  module_load_include('inc', 'backup_migrate', 'includes/profiles');
+  module_load_include('inc', 'backup_migrate', 'includes/destinations');
+  $form_state = array();
 
-  if (user_access('perform backup')) {
-    $form_state['values']['profile_id'] = $quick_backup['profile_id'];
-    $form_state['values']['source_id'] = $quick_backup['source_id'];
-    $form_state['values']['destination_id'] = $quick_backup['destination_id'];
-    $form_state['values']['submit'] = 'Backup now';
-    $form_state['values']['op'] = t('Backup now');
+    if (user_access('perform backup')) {
+    // For a quick backup use the default settings.
+    $settings = _backup_migrate_profile_saved_default_profile($quick_backup['profile_id']);
+
+    // Set the destination to the one chosen in the pulldown.
+    $settings->destination_id = $quick_backup['destination_id'];
+    $settings->source_id = $quick_backup['source_id'];
+
+    // Save the settings for next time.
+    variable_set("backup_migrate_source_id", $quick_backup['source_id']);
+    variable_set("backup_migrate_destination_id", $quick_backup['destination_id']);
+    variable_set("backup_migrate_profile_id", $quick_backup['profile_id']);
     
-    drupal_form_submit('backup_migrate_ui_manual_backup', $form_state);
-    if ($errors = form_get_errors()) {
-      return  services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
-    }  
-    return TRUE;     
+    // Do the backup.
+    
+    $backup_info = backup_migrate_perform_backup($settings); 
+    
+    $file = $backup_info->file_info['filename'];
+    $dest = $settings->get_destination_name();
+    $source = $settings->get_source_name();
+    $time = timer_stop('backup_migrate_backup');
+    $action = !empty($settings->performed_action) ? $settings->performed_action : '';
+    
+    $backup_message['backup_file'] = 'Default Database backed up successfully to '.$file.' in destination Filer Directory in '.$time['time'].' ms. '. $action;
+    return $backup_message;
+  }
+  else
+  {
+    return services_error("Please try again..",406,null);
   }
 }
+
+

@@ -203,81 +203,52 @@ function _backup_migrate_destination_display_files($destination_id = NULL) {
  * @return
  *   success message or service error.
  */
-function _backup_migrate_backup_restore_or_delete($data) { 
+function _backup_migrate_backup_restore_or_delete($data) {
   module_load_include('inc', 'backup_migrate', 'includes/filters'); 
   module_load_include('inc', 'backup_migrate', 'includes/crud'); 
   module_load_include('inc', 'backup_migrate', 'includes/destinations'); 
 
   global $user;
   $destination_id = $data['data']['destination_id'];
-  $file = $data['data']['filename'];
+  $file = $data['data']['filename'].'.mysql.gz';
   $settings = array();
+  $op = $data['data']['op'];
+  switch($op)
+  {
+    case 'Delete':
+      $file = $file. ".mysql.gz";  print_r($file); exit;
+      backup_migrate_destination_delete_file($destination_id, $file);
+      $message['backup_migrate'] = array(
+        'message' => "Database backup file deleted: ". $file,
+      );
+      return $message;
+    case 'Restore':
+      if(backup_migrate_destination_file_exists($destination_id, $file))
+      {  
+         $advance_settings = backup_migrate_filters_settings_form(backup_migrate_filters_settings_default('restore'), 'restore');
 
-  if($data['data']['op'] == 'delete') { 
-    $file = $file. ".mysql.gz";
-    backup_migrate_destination_delete_file($destination_id, $file);
-    $message['backup_migrate'] = array(
-      'message' => "Database backup file deleted: ". "$file",
-    );
-    return $message;
-  }
+         $form_state['values']['op'] = 'Restore';
+         $form_state['values']['destination_id'] = $destination_id;
+         $form_state['values']['file_id'] = $file;
+         $form_state['values']['source_id'] = 'db';
+         $form_state['values']['confirm'] = 1;
+         $form_state['values']['filter']['utils_site_offline'] = 0;
+         $form_state['values']['filter']['utils_site_offline_message'] = $advance_settings['advanced']['utils_site_offline_message']['#default_value'];
 
-  timer_start('backup_migrate_restore');
-  $file = $file. ".mysql.gz";
-
-  // If not in 'safe mode', increase the maximum execution time:
-  if (!ini_get('safe_mode') && strpos(ini_get('disable_functions'), 'set_time_limit') === FALSE && ini_get('max_execution_time') < variable_get       ('backup_migrate_backup_max_time', 1200)) {
-    set_time_limit(variable_get('backup_migrate_restore_max_time', 1200));
-  }
-
-  // Make the settings into a default profile.
-  if (!is_object($settings)) {
-    $settings = backup_migrate_crud_create_item('profile', $settings);
-    $settings->source_id = empty($settings->source_id) ? 'db' : $settings->source_id;
-  }
-
-  // Register shutdown callback.
-  register_shutdown_function('backup_migrate_shutdown', $settings);
-
-  if (!is_object($file)) {
-    // Load the file from the destination.
-    $file = backup_migrate_destination_get_file($destination_id, $file); 
-    if (!$file) {
-      _backup_migrate_message("Could not restore because the file could not be loaded from the destination.", array(), 'error');
-      backup_migrate_cleanup();
-      return FALSE;
-    }
-  }
-
-  // Filter the file and perform the restore.
-  $file = backup_migrate_filters_restore($file, $settings); 
-  if (!$file) {
-    if (_backup_migrate_check_timeout()) {
-      backup_migrate_restore_fail('Could not perform the restore because the script timed out. Try increasing your PHP <a href="!url">max_execution_time setting</a>.', array('!url' => 'http://www.php.net/manual/en/info.configuration.php#ini.max-execution-time'), 'error');
-    }
-    else {
-      backup_migrate_restore_fail("Could not perform the restore.", array(), 'error');
-    }
-    backup_migrate_cleanup();
-    return FALSE;
-  }
-
-  $time = timer_stop('backup_migrate_restore');
-  if ($file) { 
-    $destination = backup_migrate_get_destination($destination_id); 
-    $source = $settings->get_source_name(); 
-    $dest = $destination->get_name(); 
-    $time = $time['time'];
-
-    $message['backup_migrate'] = array(
-      'message' => "$source". ' restored from '. "$dest" .' file ' . "$file". ' in '."$time". ' ms ',
-    );
-
-  // Delete any temp files we've created.
-    backup_migrate_cleanup();
-    return $message;
-  }
-  else {
-    return services_error("Please try again..",406,null);
-  }
+         drupal_form_submit('backup_migrate_ui_destination_restore_file_confirm', $form_state, $destination_id, $file);
+         
+         if($error = form_get_errors())
+         {
+            return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
+         }
+         $message['backup_migrate'] = array(
+           'message' => "Default Database restored from Filer Directory file ". $file,
+         );
+         return $message;
+      }
+      else
+      {
+        return services_error('File '. $file .' from the destination '. $destination_id .' is not exists.', 404, null);
+      }
+   } 
 }

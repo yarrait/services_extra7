@@ -98,6 +98,7 @@ function _site_configuration_resource_create($site_data){
     case "site_information":
       module_load_include('inc', 'system', 'system.admin');
       $form_state = array();
+
       $form_state['values']['site_name'] = $value['site_name'];
       $form_state['values']['site_slogan'] = $value['site_slogan'];
       $form_state['values']['site_mail'] = $value['site_mail'];
@@ -106,7 +107,8 @@ function _site_configuration_resource_create($site_data){
       $form_state['values']['site_403'] = $value['site_403'];
       $form_state['values']['site_404'] = $value['site_404'];
       $form_state['values']['op'] = t('Save configuration');
-      drupal_form_submit('system_site_information_settings', $form_state);
+      $site = drupal_form_submit('system_site_information_settings', $form_state);
+      
       if ($errors = form_get_errors()) {
         return  services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
       } 
@@ -136,7 +138,7 @@ function _site_configuration_resource_create($site_data){
       $form_state['values']['op'] = t('Save configuration');
       drupal_form_submit('system_file_system_settings', $form_state);
       if ($errors = form_get_errors()) {
-        return  services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
+        return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
       } 
       return TRUE;
       break;
@@ -219,8 +221,8 @@ function _site_configuration_resource_retrieve($configuration) {
       $result['site_name'] = variable_get('site_name', 'Drupal');
       $result['site_slogan'] = variable_get('site_slogan', '');
       $result['site_mail'] = variable_get('site_mail', ini_get('sendmail_from'));
-      $result['default_nodes_main'] = variable_get('default_nodes_main', '');
-      $result['site_frontpage'] = variable_get('site_frontpage');
+      $result['default_nodes_main'] = variable_get('default_nodes_main', 10);
+      $result['site_frontpage'] = (variable_get('site_frontpage')!='node'?drupal_get_path_alias(variable_get('site_frontpage', 'node')):'');
       $result['site_403'] = variable_get('site_403', '');
       $result['site_404'] =  variable_get('site_404', '');
       break;

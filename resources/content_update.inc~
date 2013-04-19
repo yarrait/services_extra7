@@ -85,7 +85,7 @@ function _content_update_resource_create($content_data){
   }
   if(!empty($delete_multi_node))
   {
-     node_delete_multiple($delete_multi_node);
+     print_r($delete_multi_node); exit;
   }
   if ($count_update_node == $count_node) {
     return TRUE;
