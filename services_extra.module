@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * @file
+ * Code for the services_extra feature.
+ */
+
+  include_once 'services_extra.features.inc';
+
   module_load_include('inc', 'services_extra', 'resources/watchdog');
   module_load_include('inc', 'services_extra', 'resources/system_info');
   module_load_include('inc', 'services_extra', 'resources/user_permission');
@@ -19,7 +26,7 @@
     module_load_include('inc', 'services_extra', 'resources/backup_migrate_detination');
   }
   module_load_include('inc', 'services_extra', 'resources/is_module_installed');
-
+  module_load_include('inc', 'services_extra', 'resources/image_upload');
 
   function services_extra_services_resources()
   {
@@ -38,6 +45,7 @@
     $resources['user_filter'] = user_filter_resources();
     $resources['site_configuration'] = site_configuration_resources();
     $resources['form_content'] = form_content_resources();
+    $resources['image_upload'] = image_upload_resources();
     if(module_exists('backup_migrate')) 
     {
       $resources['backup_migrate'] = backup_migrate_resources();
@@ -45,4 +53,9 @@
     }
     $resources['is_module_installed'] = is_module_installed_resources();
     return $resources;
+  }
+
+  function services_extra_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items)
+  {
+     print_r('presave'); exit;
   }

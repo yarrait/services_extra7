@@ -55,71 +55,48 @@ function form_content_resources() {
  */
 function _form_content_resources_retrieve($type) 
 { 
- return getNodeField($type);
-  module_load_include('inc', 'node', 'node.pages');
-  global $user;
-
-  $types = node_type_get_types();
-  $type = isset($type) ? str_replace('-', '_', $type) : NULL;
-
-  // If a node type has been specified, validate its existence.
-  if (isset($types[$type]) && node_access('create', $type)) {
-    // Initialize settings:
-    $node = new stdClass();
-    $node->uid = $user->uid;
-    $node->name = $user->name;
-    $node->type = $type;
-    $node->language = 'und';
-
-    $form = drupal_get_form($type.'_node_form', $node);
-    if($form) {
-      $field_list = array();
-      $field_list['title'] = $form['title'];
-      foreach($form as $key => $val) { 
-         if($key == 'title' || $key == 'body' || strpos($key, 'field') > -1) { 
-           if($val['und'][0]['value']) { 
-             $field_list[$key] = $val['und']['0']['value'];
-           }
-           else if($val['und']) {
-             $field_list[$key] = $val['und'];
-           }
-         }
-       }
-      if($field_list) {
-        foreach($field_list as $k1 => $v1) {
-           $field_list['form_fields'][] = $k1;
-        }
-      } 
-
-      return $field_list; 
-    } 
-  }
-
-  return FALSE;
-}
-
-function getNodeField($type)
-{
-  $query = new EntityFieldQuery();
-$query->entityCondition('entity_type', 'node')
-  ->entityCondition('bundle', $type);
-//  ->propertyCondition('status', 1);
-//  ->fieldCondition('field_story_image', 'fid', 'NULL', '!=');
-$result = $query->execute();
- 
-if (isset($result['node'])) {
-    $page = $result['node'];
+  if (isset($type)) {
  
     // At first we need to get field's id. If you already know field id, you can ommit this step
     // Get all fields attached to a given node type
-    $fields = field_info_instances('node', $type);
-    print_r($fields); exit;
-    $field_id = $fields['field_student_name']['field_id'];
 
-    return $fields;
-    $news_items_nids = array_keys($result['node']);
-    $news_items = entity_load('node', $news_items_nids);
+    $fields = field_info_instances('node', $type); 
+    foreach($fields as $field_id => $value)
+    {
+      $field_info = field_info_field($field_id);
 
-    return $news_items;
-   }
+      $cardinality = $field_info['cardinality'];
+      $index = $fields[$field_id]['widget']['weight'];
+      $type = $fields[$field_id]['widget']['type'];
+      $module_type = $fields[$field_id]['display']['default']['module'];
+      $value['cardinality'] =  $cardinality;
+      $required = $value['required'];
+      $value['required'] =  ($required == 1) ? 1 : 0;
+      if($module_type == 'taxonomy')
+      {
+         $taxonomy = taxonomy_vocabulary_machine_name_load($field_info['settings']['allowed_values'][0]['vocabulary']);
+         $value['options'] = taxonomy_get_tree($taxonomy->vid);
+      }
+      if($module_type == 'list') {
+         $allowed_values = $field_info['settings']['allowed_values']; 
+         $opt = array();
+         $i = 0;
+         if($type != "options_onoff" &&  $cardinality == 1)// || $type == "options_select")
+         {
+           $i = 1;
+           $opt[0]['key'] = "_none";
+           $opt[0]['value'] = "-none-";
+         }
+         foreach($allowed_values as $key => $val)
+         {
+            $opt[$i]['key'] = $key;
+            $opt[$i]['value'] = $val;
+            $i++;
+         }
+         $value['options'] = $opt;
+      } 
+      $field_object->$field_id = $value; 
+    }
+    return $field_object;
+  }
 }

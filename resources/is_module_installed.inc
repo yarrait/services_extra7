@@ -8,12 +8,8 @@
  * @return Boolean
  *  Boolean TRUE if the current user has the requested permission.
  */
-function _is_module_installed_resource_access($op = 'view', $args = array()) {
-  switch ($op) {
-    case 'view':
-      return user_access('administer users');
-      break;
-  }
+function _is_module_installed_resource_access($op = 'view', $args = array()) { 
+  return TRUE;
 }
 
 
@@ -27,8 +23,9 @@ function is_module_installed_resources() {
   $resource = array(
     'index' => array(
         'callback' => '_is_module_installed_index',
-        'access arguments' => array('administer nodes'),
-        'access arguments append' => FALSE,
+        'access callback' => '_is_module_installed_resource_access',
+        'access arguments' => array('view'),
+        'access arguments append' => TRUE,
     ),
   );
   return $resource;
@@ -41,9 +38,6 @@ function is_module_installed_resources() {
  *   list of installed Modules. 
  */
 function _is_module_installed_index() {
-  global $user;
-  if($user) {
-     $modules['installed_modules'] = module_list();
-     return $modules;
-  } 
+  $modules['installed_modules'] = module_list();
+  return $modules;
 }

@@ -64,10 +64,10 @@ function site_configuration_resources() {
   return $resource;
 }
 
-function _site_configuration_resource_create($site_data){
+function _site_configuration_resource_create($site_data) {
   $option = $site_data['site_update']['option'];
   $value  = $site_data['site_update']['value'];
- 
+
   switch ($option) {
  
     case "cache_clear":  
@@ -81,13 +81,14 @@ function _site_configuration_resource_create($site_data){
       return TRUE;
       break;
 
-    case "site_maintenance":
-      $site_status = $value['site_status'];
+    case "site_maintenance": print_r($value); exit;
+      $site_status = $value['site_offline'];
       variable_set('maintenance_mode', $site_status); 
 
-      if(isset($value['site_message']))
+      if(isset($value['site_offline_message']))
       {
-        $site_message = $value['site_message'];
+        $site_message = $value['site_offline_message'];
+        
         variable_set('maintenance_mode_message', $site_message);
       }
 
@@ -121,10 +122,10 @@ function _site_configuration_resource_create($site_data){
      variable_set('cache', $value['cache']); //1 for check and 0 for un check 
      variable_set('cache_lifetime', $value['cache_lifetime']);
      variable_set('page_cache_maximum_age', $value['page_cache_maximum_age']);
-
-     //$form_state['values']['block_cache'] = $value['block_cache'];
+     variable_set('block_cache', $value['block_cache']);
      variable_set('preprocess_css', $value['preprocess_css']);
      variable_set('preprocess_js', $value['preprocess_js']);
+     variable_set('page_compression', $value['page_compression']);
      return TRUE;
      break;
 
@@ -138,12 +139,12 @@ function _site_configuration_resource_create($site_data){
       $form_state['values']['op'] = t('Save configuration');
       drupal_form_submit('system_file_system_settings', $form_state);
       if ($errors = form_get_errors()) {
-        return  services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
+        return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
       } 
       return TRUE;
       break;
       
-    case "database_logging":
+    case "database_logging": 
       $error_level = $value['error_level'];//0 1 2 option
       variable_set('error_level', $error_level);
       $dblog_row_limit = $value['db_log_limit'];//0 100 1000 etc
