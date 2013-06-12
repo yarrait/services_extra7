@@ -6,6 +6,8 @@ package = Services
 
 dependencies[] = services
 dependencies[] = ctools
+dependencies[] = druproid_notifications
+dependencies[] = rest_server
 dependencies[] = features
 
 features[ctools][] = services:services:3
