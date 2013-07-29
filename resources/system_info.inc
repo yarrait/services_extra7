@@ -16,8 +16,7 @@ function system_info_resources() {
   return $resource;
 }
 
-function _system_info_resource_index() { 
-
+function _system_info_resource_index() {
   //getting version of drupal
   $var['version'] = VERSION;
 
@@ -25,9 +24,14 @@ function _system_info_resource_index() {
   $services_extra = system_get_info('module', 'services_extra');
   $var['services_extra_version'] = $services_extra['version'];
 
-  $druproid_notifications = system_get_info('module', 'druproid_notifications');
-  $var['druproid_notifications_version'] = $druproid_notifications['version'];
+  $services = system_get_info('module', 'services');
+  $var['services_version'] = $services['version'];
 
-//drupal_parse_info_file
+  if(module_exists('druproid_notifications'))
+  {
+    $druproid_notifications = system_get_info('module', 'druproid_notifications');
+    $var['druproid_notifications_version'] = $druproid_notifications['version'];
+  }
+  
   return $var;
 }

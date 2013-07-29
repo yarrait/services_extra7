@@ -21,12 +21,14 @@
   module_load_include('inc', 'services_extra', 'resources/user_filter'); 
   module_load_include('inc', 'services_extra', 'resources/site_configuration');
   module_load_include('inc', 'services_extra', 'resources/form_content');
+  
   if(module_exists('backup_migrate')) {
     module_load_include('inc', 'services_extra', 'resources/backup_migrate');
     module_load_include('inc', 'services_extra', 'resources/backup_migrate_detination');
   }
   module_load_include('inc', 'services_extra', 'resources/is_module_installed');
   module_load_include('inc', 'services_extra', 'resources/image_upload');
+  module_load_include('inc', 'services_extra', 'resources/entity_bundle');
 
   function services_extra_services_resources()
   {
@@ -52,10 +54,7 @@
       $resources['backup_migrate_destination'] = backup_migrate_destination_resources();
     }
     $resources['is_module_installed'] = is_module_installed_resources();
+    $resources['entity_bundle'] = entity_bundle_resources();
     return $resources;
   }
 
-  function services_extra_field_presave($entity_type, $entity, $field, $instance, $langcode, &$items)
-  {
-     print_r('presave'); exit;
-  }
