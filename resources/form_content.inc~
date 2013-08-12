@@ -137,7 +137,7 @@ function _form_content_resources_index($entity_type, $bundle) {
         }
       } 
       if($module_type == 'addressfield')
-      { 
+      { //print_r($value['widget']['settings']['format_handlers']['address-hide-country'].' '); 
         $format_handler = $value['widget']['settings']['format_handlers'];
         if(is_object($format_handler))
         {
