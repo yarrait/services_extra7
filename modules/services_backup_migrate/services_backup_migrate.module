@@ -3,7 +3,7 @@
 /**
  * Implements hook_services_resources().
  */
-function se_backup_migrate_services_resources() {
+function services_backup_migrate_services_resources() {
   $resources = array();
 
   $resources['backup_migrate'] = array(
