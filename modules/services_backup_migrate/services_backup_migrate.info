@@ -1,4 +1,4 @@
-name = Services Extra - Backup Migrate Integration
+name = Services Extra - Backup Migrate
 description = Extra Services for backup migrate module.
 version = 7.x-1.0		
 core = 7.x

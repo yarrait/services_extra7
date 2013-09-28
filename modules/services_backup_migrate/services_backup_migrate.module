@@ -35,7 +35,7 @@ function services_backup_migrate_services_resources() {
       'access arguments' => array('administer nodes'),
       'access arguments append' => FALSE,
     ),
-    'create' => array(
+    'update' => array(
       'callback' => 'backup_migrate_backup_restore_or_delete',
       'args' => array(
         array(
@@ -43,6 +43,21 @@ function services_backup_migrate_services_resources() {
           'optional' => FALSE,
           'source' => 'data',
           'description' => 'Backup Restore',
+          'type' => 'array',
+        ),
+      ),
+      'access callback' => 'backup_migrate_destination_resource_access',
+      'access arguments' => array('create'),
+      'access arguments append' => TRUE,
+    ),
+    'delete' => array(
+      'callback' => 'backup_migrate_backup_restore_or_delete',
+      'args' => array(
+        array(
+          'name' => 'backup_migrate_delete',
+          'optional' => FALSE,
+          'source' => 'data',
+          'description' => 'Delete Restore',
           'type' => 'array',
         ),
       ),
@@ -82,10 +97,10 @@ function services_backup_migrate_services_resources() {
 function backup_migrate_resource_access($op = 'view', $args = array()) {
   switch ($op) {
     case 'view':
-      return user_access('perform backup');
+      return user_access('access backup and migrate');
       break;
     case 'create':
-      return user_access('access backup and migrate');
+      return user_access('perform backup');
       break;
   }
 }
@@ -131,7 +146,6 @@ function backup_migrate_quickbackup_create($quick_backup) {
     variable_set("backup_migrate_profile_id", $quick_backup['profile_id']);
     
     // Do the backup.
-    
     $backup_info = backup_migrate_perform_backup($settings); 
     
     $file = $backup_info->file_info['filename'];
@@ -157,13 +171,17 @@ function backup_migrate_quickbackup_create($quick_backup) {
  *  Boolean TRUE if the current user has the requested permission.
  */
 function backup_migrate_destination_resource_access($op = 'view', $args = array()) {
+watchdog('op', $op);
   switch ($op) {
     case 'view':
-      return user_access('administer backup and migrate');
+      return user_access('access backup files');
       break;
-    case 'create':
-      return user_access('administer backup and migrate');
-      break;
+    case 'update':
+     return user_access('restore from backup');
+     break;
+    case 'delete':
+     return user_access('delete backup files');
+     break;
   }
 }
 
@@ -203,9 +221,7 @@ function backup_migrate_destination_display_files($destination_id = NULL) {
   $rows = $sort = array();
 
   if ($destination = backup_migrate_get_destination($destination_id)) {
-
     $files = $destination->list_files();
-
     foreach ((array)$files as $file) {
       $info = $file->info();
       // Show only files that can be restored from.
@@ -220,8 +236,10 @@ function backup_migrate_destination_display_files($destination_id = NULL) {
         );
       }
     }
+
     array_multisort($sort, SORT_DESC, $rows);
-    if ($rows) {
+
+    if (count($rows) > 0) {
       return $rows;
     }
     else {
@@ -239,46 +257,31 @@ function backup_migrate_destination_display_files($destination_id = NULL) {
  *   success message or service error.
  */
 function backup_migrate_backup_restore_or_delete($data) {
-  module_load_include('inc', 'backup_migrate', 'includes/filters'); 
-  module_load_include('inc', 'backup_migrate', 'includes/crud'); 
   module_load_include('inc', 'backup_migrate', 'includes/destinations'); 
 
-  global $user;
   $destination_id = $data['data']['destination_id']; 
-  $file = $data['data']['filename'].'.mysql.gz'; //@todo : Use file_id
-  $settings = array();
+  $file = $data['data']['file_id'];
+
+  if (!backup_migrate_destination_file_exists($destination_id, $file)) { 
+    return services_error(t('File @file does not exists at @destination destination ', array('@file' => $file, '@destination' => $destination_id)), 404, null);
+  }
 
   switch($data['data']['op']) {
     case 'Delete':
       backup_migrate_destination_delete_file($destination_id, $file);
       $message['backup_migrate'] = array(
-        'message' => "Database backup file deleted: ". $file,
+        'message' => t('Backup file @file deleted', array('@file' => $file)),
       );
       return $message;
     case 'Restore':
-      if (backup_migrate_destination_file_exists($destination_id, $file)) {  
-         $advance_settings = backup_migrate_filters_settings_form(backup_migrate_filters_settings_default('restore'), 'restore');
-//@todo : use backup_migrate_perform_restore
-         $form_state['values']['op'] = 'Restore';
-         $form_state['values']['destination_id'] = $destination_id;
-         $form_state['values']['file_id'] = $file;
-         $form_state['values']['source_id'] = 'db';
-         $form_state['values']['confirm'] = 1;
-         $form_state['values']['filter']['utils_site_offline'] = 0;
-         $form_state['values']['filter']['utils_site_offline_message'] = $advance_settings['advanced']['utils_site_offline_message']['#default_value'];
-
-         drupal_form_submit('backup_migrate_ui_destination_restore_file_confirm', $form_state, $destination_id, $file);
-         
-         if ($error = form_get_errors()) {
-           return services_error(implode(" ", $errors), 406, array('form_errors' => $errors));
-         }
-         $message['backup_migrate'] = array(
-           'message' => "Default Database restored from Filer Directory file ". $file,
-         );
-         return $message;
+      if (!backup_migrate_perform_restore($destination_id, $file)) {
+        return services_error(t('Failed to restore from file @file', array('@file' => $file)), 406, null);
       }
       else {
-        return services_error('File '. $file .' from the destination '. $destination_id .' is not exists.', 404, null);
+        $message['backup_migrate'] = array(
+          'message' => t('Restored file @file', array('@file' => $file)),
+        );
       }
+      return $message;
    } 
 }
