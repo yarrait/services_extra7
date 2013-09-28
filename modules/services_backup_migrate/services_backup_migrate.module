@@ -36,14 +36,21 @@ function services_backup_migrate_services_resources() {
       'access arguments append' => FALSE,
     ),
     'update' => array(
-      'callback' => 'backup_migrate_backup_restore_or_delete',
+      'callback' => 'backup_migrate_backup_restore',
       'args' => array(
         array(
-          'name' => 'backup_migrate_restore',
+          'name' => 'file_id',
           'optional' => FALSE,
-          'source' => 'data',
-          'description' => 'Backup Restore',
-          'type' => 'array',
+          'source' => array('path' => 0),
+          'type' => 'string',
+          'description' => 'The file_id of file.',
+        ),
+        array(
+          'name' => 'destination_id',
+          'optional' => FALSE,
+          'source' => array('path' => 1),
+          'type' => 'string',
+          'description' => 'The destination id of the display files',
         ),
       ),
       'access callback' => 'backup_migrate_destination_resource_access',
@@ -51,14 +58,21 @@ function services_backup_migrate_services_resources() {
       'access arguments append' => TRUE,
     ),
     'delete' => array(
-      'callback' => 'backup_migrate_backup_restore_or_delete',
+      'callback' => 'backup_migrate_backup_delete',
       'args' => array(
         array(
-          'name' => 'backup_migrate_delete',
+          'name' => 'file_id',
           'optional' => FALSE,
-          'source' => 'data',
-          'description' => 'Delete Restore',
-          'type' => 'array',
+          'source' => array('path' => 0),
+          'type' => 'string',
+          'description' => 'The file_id of file.',
+        ),
+        array(
+          'name' => 'destination_id',
+          'optional' => FALSE,
+          'source' => array('path' => 1),
+          'type' => 'string',
+          'description' => 'The destination id of the display files',
         ),
       ),
       'access callback' => 'backup_migrate_destination_resource_access',
@@ -256,32 +270,34 @@ function backup_migrate_destination_display_files($destination_id = NULL) {
  * @return
  *   success message or service error.
  */
-function backup_migrate_backup_restore_or_delete($data) {
+function backup_migrate_backup_restore($file, $destination_id) {
   module_load_include('inc', 'backup_migrate', 'includes/destinations'); 
-
-  $destination_id = $data['data']['destination_id']; 
-  $file = $data['data']['file_id'];
 
   if (!backup_migrate_destination_file_exists($destination_id, $file)) { 
     return services_error(t('File @file does not exists at @destination destination ', array('@file' => $file, '@destination' => $destination_id)), 404, null);
   }
 
-  switch($data['data']['op']) {
-    case 'Delete':
-      backup_migrate_destination_delete_file($destination_id, $file);
-      $message['backup_migrate'] = array(
-        'message' => t('Backup file @file deleted', array('@file' => $file)),
-      );
-      return $message;
-    case 'Restore':
-      if (!backup_migrate_perform_restore($destination_id, $file)) {
-        return services_error(t('Failed to restore from file @file', array('@file' => $file)), 406, null);
-      }
-      else {
-        $message['backup_migrate'] = array(
-          'message' => t('Restored file @file', array('@file' => $file)),
-        );
-      }
-      return $message;
-   } 
+  if (!backup_migrate_perform_restore($destination_id, $file)) {
+    return services_error(t('Failed to restore from file @file', array('@file' => $file)), 406, null);
+  }
+  else {
+    $message['backup_migrate'] = array(
+      'message' => t('Restored file @file', array('@file' => $file)),
+    );
+  }
+  return $message;
+}
+
+function backup_migrate_backup_delete($file, $destination_id) {
+  module_load_include('inc', 'backup_migrate', 'includes/destinations'); 
+
+  if (!backup_migrate_destination_file_exists($destination_id, $file)) { 
+    return services_error(t('File @file does not exists at @destination destination ', array('@file' => $file, '@destination' => $destination_id)), 404, null);
+  }
+
+  backup_migrate_destination_delete_file($destination_id, $file);
+  $message['backup_migrate'] = array(
+    'message' => t('Backup file @file deleted', array('@file' => $file)),
+  );
+  return $message;
 }
