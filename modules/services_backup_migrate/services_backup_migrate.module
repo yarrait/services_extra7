@@ -54,7 +54,7 @@ function services_backup_migrate_services_resources() {
         ),
       ),
       'access callback' => 'backup_migrate_destination_resource_access',
-      'access arguments' => array('create'),
+      'access arguments' => array('restore'),
       'access arguments append' => TRUE,
     ),
     'delete' => array(
@@ -76,7 +76,7 @@ function services_backup_migrate_services_resources() {
         ),
       ),
       'access callback' => 'backup_migrate_destination_resource_access',
-      'access arguments' => array('create'),
+      'access arguments' => array('delete'),
       'access arguments append' => TRUE,
     ),
     'retrieve' => array(
@@ -190,11 +190,11 @@ watchdog('op', $op);
     case 'view':
       return user_access('access backup files');
       break;
-    case 'update':
+    case 'restore':
      return user_access('restore from backup');
      break;
     case 'delete':
-     return user_access('delete backup files');
+     return user_access('access backup files');
      break;
   }
 }
@@ -288,7 +288,7 @@ function backup_migrate_backup_restore($file, $destination_id) {
   return $message;
 }
 
-function backup_migrate_backup_delete($file, $destination_id) {
+function backup_migrate_backup_delete($file, $destination_id) { 
   module_load_include('inc', 'backup_migrate', 'includes/destinations'); 
 
   if (!backup_migrate_destination_file_exists($destination_id, $file)) { 
