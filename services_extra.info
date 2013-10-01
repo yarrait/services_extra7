@@ -1,6 +1,6 @@
 name = Services Extra
 description = Extra Services required for Druproid Android app
-version = 7.x-1.0		
+version = 7.x-1.0.1		
 core = 7.x
 package = Services
 
