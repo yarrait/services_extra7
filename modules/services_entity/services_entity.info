@@ -1,0 +1,7 @@
+name = Services Extra - Entity
+description = Extra Services for entity module.
+version = 7.x-1.0		
+core = 7.x
+package = Services
+
+dependencies[] = services_extra

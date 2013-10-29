@@ -146,34 +146,30 @@ function backup_migrate_index() {
 function backup_migrate_quickbackup_create($quick_backup) { 
   module_load_include('inc', 'backup_migrate', 'includes/profiles');
   module_load_include('inc', 'backup_migrate', 'includes/destinations');
-  if (user_access('perform backup')) {
-    // For a quick backup use the default settings.
-    $settings = _backup_migrate_profile_saved_default_profile($quick_backup['profile_id']);
-
-    // Set the destination to the one chosen in the pulldown.
-    $settings->destination_id = $quick_backup['destination_id'];
-    $settings->source_id = $quick_backup['source_id'];
-
-    // Save the settings for next time.
-    variable_set("backup_migrate_source_id", $quick_backup['source_id']);
-    variable_set("backup_migrate_destination_id", $quick_backup['destination_id']);
-    variable_set("backup_migrate_profile_id", $quick_backup['profile_id']);
     
-    // Do the backup.
-    $backup_info = backup_migrate_perform_backup($settings); 
+  // For a quick backup use the default settings.
+  $settings = _backup_migrate_profile_saved_default_profile($quick_backup['profile_id']);
+
+  // Set the destination to the one chosen in the pulldown.
+  $settings->destination_id = $quick_backup['destination_id'];
+  $settings->source_id = $quick_backup['source_id'];
+
+  // Save the settings for next time.
+  variable_set("backup_migrate_source_id", $quick_backup['source_id']);
+  variable_set("backup_migrate_destination_id", $quick_backup['destination_id']);
+  variable_set("backup_migrate_profile_id", $quick_backup['profile_id']);
     
-    $file = $backup_info->file_info['filename'];
-    $dest = $settings->get_destination_name();
-    $source = $settings->get_source_name();
-    $time = timer_stop('backup_migrate_backup');
-    $action = !empty($settings->performed_action) ? $settings->performed_action : '';
-    //@todo : replace with t().
-    $backup_message['backup_file'] = 'Default Database backed up successfully to '.$file.' in destination Filer Directory in '.$time['time'].' ms. '. $action;
-    return $backup_message;
-  }
-  else {
-    return services_error("Please try again..",406,null);
-  }
+  // Do the backup.
+  $backup_info = backup_migrate_perform_backup($settings); 
+    
+  $file = $backup_info->file_info['filename'];
+  $dest = $settings->get_destination_name();
+  $source = $settings->get_source_name();
+  $time = timer_stop('backup_migrate_backup');
+  $action = !empty($settings->performed_action) ? $settings->performed_action : '';
+  //@todo : replace with t().
+  $backup_message['backup_file'] = 'Default Database backed up successfully to '.$file.' in destination Filer Directory in '.$time['time'].' ms. '. $action;
+  return $backup_message;
 }
 
 /**

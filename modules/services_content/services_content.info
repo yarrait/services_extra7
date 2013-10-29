@@ -1,0 +1,7 @@
+name = Services Extra - Content
+description = Extra Services for content module.
+version = 7.x-1.0		
+core = 7.x
+package = Services
+
+dependencies[] = services_extra
