@@ -150,7 +150,7 @@ function _permission_module_user_resource_index($page, $fields, $parameters, $pa
 
 function _permission_module_user_resource_update($rid, $permission) {
   $permissions = $permission['perm']['enabled'];
-  if(empty($permission['perm']['module']) || empty($permission['perm']['enabled']))
+  if(empty($permission['perm']['module']))// || empty($permission['perm']['enabled']))
     return services_error("module name or permission field is requried" ,406,array('form_errors' => "module name or permission field is requried."));
 
   $permissions = module_invoke($permission['perm']['module'], 'permission');
@@ -161,29 +161,43 @@ function _permission_module_user_resource_update($rid, $permission) {
   $query -> fields('p',array('permission'));
   $query -> condition('rid',$rid,'=');   
   $result = $query->execute();
+
   while ($record = $result->fetchAssoc()) {
-    $role_enabled_perm[]=$record['permission'];
+    $role_enabled_perm[] = $record['permission'];
   }
+  
+  $perm_enable_diff = array();
+  $perm_disable_diff = array();
   if (!empty($role_enabled_perm)) {
     $module_enabled_perm = array_intersect($role_enabled_perm ,$module_permission);
-    $perm_enable_diff = array_diff($permission['perm']['enabled'], $module_enabled_perm);
-    $perm_disable_diff = array_diff($module_enabled_perm, $permission['perm']['enabled']);
-  }
-  foreach ($perm_enable_diff as $key => $perm) {
-    $data = array(
-      'permission' => $perm,
-      'rid'        => $rid,
-      'module'     => $permission['perm']['module'],
-    );
-    drupal_write_record('role_permission', $data);
-  }
-  foreach ($perm_disable_diff as $key => $perm) {
-    db_delete('role_permission')
-      ->condition('rid', $rid)
-      ->condition('permission', $perm)
-      ->condition('module', $permission['perm']['module'])
-      ->execute();
+    if(!empty($permission['perm']['enabled'])) {
+      $perm_enable_diff = array_diff($permission['perm']['enabled'], $module_enabled_perm);
+      $perm_disable_diff = array_diff($module_enabled_perm, $permission['perm']['enabled']);
     }
+    else {
+      $perm_disable_diff = $module_enabled_perm;
+    }
+  }
+
+  if(!empty($perm_enable_diff)) {
+    foreach ($perm_enable_diff as $key => $perm) {
+      $data = array(
+        'permission' => $perm,
+        'rid'        => $rid,
+        'module'     => $permission['perm']['module'],
+      );
+      drupal_write_record('role_permission', $data);
+    }
+  }
+  if(!empty($perm_disable_diff)) {
+    foreach ($perm_disable_diff as $key => $perm) {
+      db_delete('role_permission')
+        ->condition('rid', $rid)
+        ->condition('permission', $perm)
+        ->condition('module', $permission['perm']['module'])
+        ->execute();
+    }
+  }
   $return['status_message'] = 'The changes have been saved.';
   return $return;
 }
