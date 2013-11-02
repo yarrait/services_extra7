@@ -241,14 +241,7 @@ function services_user_services_resources() {
 }
 
 function _permission_module_user_resource_access($op = 'view', $args = array()) {
-  switch ($op) {
-    case 'view':
-      return user_access('administer permissions');
-       break;
-    case 'update':
-      return user_access('administer permissions');
-      break;
-    }
+  return user_access('administer permissions');
 }
 
 function _permission_module_user_resource_retrieve($module = NULL, $role = 0) {
@@ -282,7 +275,12 @@ function _permission_module_user_resource_retrieve($module = NULL, $role = 0) {
       }
     }
 
-    empty($match_array) ? return FALSE : return $match_array;
+//    empty($match_array) ? return FALSE : return $match_array;
+
+    if (empty($match_array)) 
+       return FALSE; 
+    else
+       return $match_array;
   }
   else if ($module && !$role) {
 
@@ -300,6 +298,7 @@ function _permission_module_user_resource_retrieve($module = NULL, $role = 0) {
 }
 
 function _permission_module_user_resource_index($page, $fields, $parameters, $page_size) {
+
   $modules = array();
   $modules["modules"]=module_implements('permission');
   asort($modules);
@@ -307,10 +306,11 @@ function _permission_module_user_resource_index($page, $fields, $parameters, $pa
 }
 
 function _permission_module_user_resource_update($rid, $permission) {
+
   $permissions = $permission['perm']['enabled'];
 
   if(empty($permission['perm']['module']) || empty($permission['perm']['enabled'])) {
-    return services_error(t('Module name or permission field is requried'), 406, array('form_errors' => t('Module name or permission field is requried'));
+    return services_error(t('Module name or permission field is requried'), 406, array('form_errors' => t('Module name or permission field is requried')));
   }
 
   $permissions = module_invoke($permission['perm']['module'], 'permission');
@@ -319,8 +319,8 @@ function _permission_module_user_resource_update($rid, $permission) {
     $module_permission[] = $key;
   }
 
-  $query = db_select('role_permission', 'p');
-         -> fields('p',array('permission'));
+  $query = db_select('role_permission', 'p')
+         -> fields('p',array('permission'))
          -> condition('rid',$rid,'=');   
 
   $result = $query->execute();
@@ -362,11 +362,6 @@ function _user_update_resource_access($op = 'view', $args = array()) {
       return user_access('administer users');
       break;
   }
-}
-
-function user_update_resources() {
-  $resource = 
-  return $resource;
 }
 
 function _user_update_resource_create($user_data){
@@ -441,13 +436,13 @@ function _user_filter_resource_create($user_data){
   }
   if ($option == "role") {
     $no_records = db_query("Select count(*) from users_roles r inner join users u on r.uid = u.uid where r.rid = :rid", array(':rid' => $filter))->fetchField();
-    $query = db_select('users_roles', 'ur');
-    $query -> innerJoin('users', 'u', '(ur.uid = u.uid)');
-    $query -> fields('ur',array('uid'))
+    $query = db_select('users_roles', 'ur')
+           -> innerJoin('users', 'u', '(ur.uid = u.uid)')
+           -> fields('ur',array('uid'))
            -> condition('ur.rid',$filter,'=')
-           -> orderBy('ur.uid','DESC');
-    $result = $query->execute();
-    while ($record = $result->fetchAssoc()) {
+           -> orderBy('ur.uid','DESC')
+           -> execute();
+    while ($record = $query->fetchAssoc()) {
       $uid_array[] = $record['uid'];
     }
     foreach ($uid_array as $key => $uid) {
@@ -458,19 +453,19 @@ function _user_filter_resource_create($user_data){
     $query = db_select('role_permission', 'p');
     $query -> fields('p',array('rid'))
            -> condition('p.permission',$filter,'=')
-           -> orderBy('p.rid','DESC');
-    $result = $query->execute();
-    while ($record = $result->fetchAssoc()) {
+           -> orderBy('p.rid','DESC')
+           -> execute();
+    while ($record = $query->fetchAssoc()) {
       $rid[] = $record['rid'];
     }
     for ($i = 0; $i<count($rid); $i++) {
       if ($rid[$i] == 2) {
-        $query = db_select('users', 'u');
-        $query -> fields('u',array('uid'))
-               -> condition('u.uid',0,'!=');
-        $query -> orderBy('uid','DESC');
-        $result = $query->execute();
-        while ($record = $result->fetchAssoc()) {
+        $query = db_select('users', 'u')
+               -> fields('u',array('uid'))
+               -> condition('u.uid',0,'!=')
+               -> orderBy('uid','DESC')
+               -> execute();
+        while ($record = $query->fetchAssoc()) {
           $uid_array[]=$record['uid'];
         }
         foreach ($uid_array as $key => $uid) {
@@ -494,10 +489,10 @@ function _user_filter_resource_create($user_data){
     for ($i=0;$i<count($rid);$i++) {
       $query = db_select('users_roles', 'u');
       $query -> fields('u',array('uid'))
-             -> condition('u.rid',$rid[$i],'=');
-      $query -> orderBy('uid','DESC');
-      $result = $query->execute();
-      while ($record = $result->fetchAssoc()) {
+             -> condition('u.rid',$rid[$i],'=')
+             -> orderBy('uid','DESC')
+             -> execute();
+      while ($record = $query->fetchAssoc()) {
         $user_detail[] = $record['uid'];
       }
       foreach($user_detail as $key => $val) {
@@ -541,9 +536,9 @@ function _user_filter_resource_create($user_data){
        $query -> fields('u',array('uid'))
               -> condition('u.uid',0,'!=')
               -> condition('u.status',1,'=')
-              -> orderBy('u.uid','DESC');
-       $result = $query->execute();
-       while ($record = $result->fetchAssoc()) {
+              -> orderBy('u.uid','DESC')
+              -> execute();
+       while ($record = $query->fetchAssoc()) {
          $user_detail[] = $record['uid'];
        }
        foreach ($user_detail as $key => $val) {
@@ -556,9 +551,9 @@ function _user_filter_resource_create($user_data){
        $query -> fields('u',array('uid'))
               -> condition('u.uid',0,'!=')
               -> condition('u.status',0,'=')
-              -> orderBy('u.uid','DESC');
-       $result = $query->execute();
-       while ($record = $result->fetchAssoc()) {
+              -> orderBy('u.uid','DESC')
+              -> execute();
+       while ($record = $query->fetchAssoc()) {
                $user_detail[]=$record['uid'];
        }
        foreach ($user_detail as $key => $val) {
@@ -573,7 +568,6 @@ function _user_filter_resource_create($user_data){
   //@todo : use constants instead hardcoded values.
   $page_size = 20;
   $start_index = 0;
-  $page_no = 0;
   $last_index = 10;
   for ($i = 0; $i<count($user_details); $i= $i+$page_size) {
     $page_user[$page_no] = array_slice($user_details,$start_index,$last_index);
@@ -587,26 +581,12 @@ function _user_filter_resource_create($user_data){
 }
 
 function _role_resource_access($op = 'view', $args = array()) {
-
-  //@todo : we dont need multiple checks when we only have one permission to check.
-  switch ($op) {
-    case 'view':
-     return user_access('administer permissions');
-     break;
-    case 'update':
-     return user_access('administer permissions');
-     break;
-    case 'delete':
-     return user_access('administer permissions');
-     break;
-    case 'create':
-     return user_access('administer permissions'); 
-     break;
-  }
+   return user_access('administer permissions'); 
 }
 
-function _role_resource_retrieve($id) {
-  $role = db_query("SELECT r.* FROM {role} r WHERE  r.rid = :rid", array(':rid' => $id))->fetchAssoc();
+function _role_resource_retrieve($rid) {
+  // Fetch role object
+  $role = user_role_load($rid);
   return $role;
 }
 
@@ -616,86 +596,64 @@ function _role_resource_retrieve($id) {
  */
 function _role_resource_index($page, $fields, $parameters, $page_size) { 
   //@todo: use user_roles();
-  $query = db_query("select * from role order by rid asc");
-
-  foreach ($query as $record) {
-    $role[] = $record;
-  }
-
-  return services_resource_build_index_list($role, 'role','rid');
+  $roles = user_roles();
+  $role_list = array();
+  foreach ($roles as $key => $role) { 
+    $role_list[] = user_role_load_by_name($role);
+  } 
+  return $role_list;
 }
 
 function _role_resource_create($role){
   if(empty($role)) //@todo : use t()
     return services_error("role name filed is required", 406,array('form_errors' => "role[name] field is required."));
+
   $role_name = $role['name'];
   $data = array(
     'name' => $role_name,
   );
-
+  
 //@todo : user_role_save($role) instead of queries.
-  drupal_write_record('role', $data);
-  $query = db_query("select rid from role order by rid desc limit 1");
-  foreach ($query as $rid) {
-    $results = $rid;
+
+  if(user_role_save($data)) {
+    $role = user_load_by_name($role_name);
+    return $role;
   }
-  $role_service_uri['rid'] = $results->rid;
-  $role_service_uri['uri'] = services_resource_uri(array('role',$results->rid));
-  return $role_service_uri;
 }
 
-function _role_resource_update($rid, $role){
-  $role_name = $role['role']['name'];
-  if(empty($role)){
-    //@todo : use t()
-    return services_error("role name filed is required", 406,array('form_errors' => "role[name] field is required."));
+function _role_resource_update($rid, $role_update) {
+
+  if (empty($role_update)) {
+    return services_error(t('Role name is required'), 406, array('form_errors' => 'role[name] field is required.'));
   }
 
-  //@todo : for checking record use 1 instead of count(*)
-  $code = db_query("SELECT COUNT(*) FROM {role} r WHERE  r.rid = :rid", array(':rid' => $rid))->fetchField();
-
-  //@todo : user_role_save($role) instead of queries.
-  if($code) {
-    $num_updated = db_update('role')->fields(array(
-      'name' => $role_name,
-    ))  
-    ->condition('rid', $rid, '=')
-    ->execute();
-    $role_service_uri['role'] = $role_name;
-    $role_service_uri['rid'] = $rid;
-    return $role_service_uri;
+  $role = user_role_load($rid);
+  if (!$role) {
+    return services_error(t('There is no role with id @rid', array('@rid' => $rid)), 406, null);
   }
- 
-  //@todo : use t() 
-  return services_error("There is no role with id ".$rid,406,null);
+
+  if ($role) {
+    $role->name = $role_update['role']['name'];
+    user_role_save($role);
+    return $role;
+  }
 }
 
 function _role_resource_delete($rid){
 
-  //@todo : use t()
   if($rid == DRUPAL_ANONYMOUS_RID || $rid == DRUPAL_AUTHENTICATED_RID){
-    return services_error("your request will not accepted ",212,null);
+    return services_error(t('your request will not accepted'),212,null);
   }
-
   
-  $exists = db_query("SELECT 1 FROM {role} r WHERE  r.rid = :rid", array(':rid' => $rid))->fetchField();	
+  //$exists = db_query("SELECT 1 FROM {role} r WHERE  r.rid = :rid", array(':rid' => $rid))->fetchField();	
+  $role = user_role_load($rid);
+  if (!$role) {
+    return services_error(t('There is no role with id').$rid,406,null);
+  }
 
   //@todo use : user_role_delete() instead of sql queries.
-  if ($exists) {
-    db_delete('role')
-      ->condition('rid', $rid)
-      ->execute();
-    
-    db_delete('role_permission')
-      ->condition('rid', $rid)
-      ->execute();
-    
-    db_delete('users_roles')
-      ->condition('rid', $rid)
-      ->execute();
-      return TRUE;
+  if ($role) {
+    user_role_delete($rid);
+    return TRUE;
   }
-
-  //@todo : use t()
-  return services_error("There is no role with id ".$rid,406,null);
 }
