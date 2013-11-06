@@ -244,63 +244,49 @@ function _permission_module_user_resource_access($op = 'view', $args = array()) 
   return user_access('administer permissions');
 }
 
-function _permission_module_user_resource_retrieve($module = NULL, $role = 0) {
+function _permission_module_user_resource_retrieve($module = NULL, $rid = 0) {
 
-  if($module && $role) {
-
-    $query = db_select('role_permission', 'p')
-           -> fields('p',array('permission'))
-           -> condition('rid', $role, '=');
-
-    $result = $query->execute();
-
-    while ($role_record = $result->fetchAssoc()) {
-      $role_permissions[] = $role_record['permission'];
-    }  
-
-    $permission = module_invoke($module, 'permission');
-
-    foreach ($permission as $key =>$value) {
-      $perm[] = $key;
-    }
-
-    $role_permission_total = count($role_permissions);
-    $module_permission_total = count($perm);
-
-    for ($i = 0; $i<$role_permission_total; $i++) {
-      for ($j = 0; $j<$module_permission_total; $j++) {
-        if (strcasecmp($perm[$j],$role_permissions[$i]) == 0) {
-          $match_array['Enable'][] = $perm[$j];
-        }
-      }
-    }
-
-//    empty($match_array) ? return FALSE : return $match_array;
-
-    if (empty($match_array)) 
-       return FALSE; 
-    else
-       return $match_array;
+  if (!module_exists($module)) {
+    return services_error(t('Module @module is not enabled or installed.', array('@module' => $module)), 404);
   }
-  else if ($module && !$role) {
 
+  // Retrieve role names for columns.
+  $role_names = user_roles();
+
+  if (array_key_exists($rid, $role_names)) {
+
+    if (is_numeric($rid)) {
+      $role_names = array($rid => $role_names[$rid]);
+    }
+
+    // Fetch permissions for all roles or the one selected role.
+    $permissions = user_role_permissions($role_names);
+    $role_permissions = array_keys($permissions[$rid]);
+
+    $module_permission = array_keys(module_invoke($module, 'permission'));
+    $role_module_permissions = array_intersect($role_permissions, $module_permission);
+
+    return empty($role_module_permissions) ? FALSE : $role_module_permissions;
+
+  }
+  else {
     $permissions = module_invoke($module, 'permission');
-    
+
     foreach($permissions as $key =>$value) {
-      $perm[$module][] = array(
+      $module_permission[$module][] = array(
         'title' => $value['title'],
         'permission' => $key
       );
     }
-    return $perm;
+ 
+    return $module_permission;
   }
-  return services_error('No module with ' .$module.' found.', 404);
+
 }
 
 function _permission_module_user_resource_index($page, $fields, $parameters, $page_size) {
-
   $modules = array();
-  $modules["modules"]=module_implements('permission');
+  $modules["modules"] = module_implements('permission');
   asort($modules);
   return $modules;
 }
@@ -381,8 +367,10 @@ function _user_update_resource_create($user_data){
   foreach ($user_data['user'] as $key => $value) {
     if (is_numeric($key)) {
       $uid = $value['uid'];
-      $code = db_query("SELECT COUNT(*) FROM {users} u WHERE  u.uid = :uid", array(':uid' => $uid))->fetchField();
-      if ($code) {   
+   //   $code = db_query("SELECT COUNT(*) FROM {users} u WHERE  u.uid = :uid", array(':uid' => $uid))->fetchField();
+      $user = user_load($uid);
+//      if ($code) {   
+      if($user) {
         $total_uid[]=$uid;
         if ($uid != null && ($option=="block" || $option=="active" )) {
           $data_update = db_update('users')
@@ -394,9 +382,10 @@ function _user_update_resource_create($user_data){
           $update_user_total++;
         }
         else if ($uid != null && $option="delete") {
-          db_delete('users')
+ /*         db_delete('users')
             ->condition('uid', $uid)
-            ->execute();
+            ->execute(); */
+          user_delete($uid);
            $update_user_total++;
         }
       }
@@ -639,13 +628,12 @@ function _role_resource_update($rid, $role_update) {
   }
 }
 
-function _role_resource_delete($rid){
+function _role_resource_delete($rid) {
 
   if($rid == DRUPAL_ANONYMOUS_RID || $rid == DRUPAL_AUTHENTICATED_RID){
-    return services_error(t('your request will not accepted'),212,null);
+    return services_error(t('your request will not accepted'), 212, null);
   }
   
-  //$exists = db_query("SELECT 1 FROM {role} r WHERE  r.rid = :rid", array(':rid' => $rid))->fetchField();	
   $role = user_role_load($rid);
   if (!$role) {
     return services_error(t('There is no role with id').$rid,406,null);
