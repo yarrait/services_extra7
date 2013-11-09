@@ -20,13 +20,6 @@ function comments_resources() {
             'type' => 'int',
             'description' => 'Get recently added commnets',
           ),
-          array(
-            'name' => 'page',
-            'optional' => TRUE,
-            'source' => array('param' => 'page'),
-            'type' => 'int',
-            'description' => 'The page number which want to display',
-          ),
         ),
         'access callback' => '_comments_resource_access',
         'access arguments' => array('view'),
@@ -75,33 +68,21 @@ function comments_resources() {
   return $resource;
 }
 
-function _comments_resource_retrieve($cid = 0,$page = 0) {
-  if($cid && $page){
-  } 
-  else if($cid){
-   $page = 0;
-  }
+function _comments_resource_retrieve($cid = 0) {
   $query = db_select('comment', 'c')
          -> condition('cid', $cid,'>')
          -> fields('c')
          -> orderBy('cid','DESC') 
          -> execute();
+
   while($record = $query->fetchAssoc()) {
-        $new_comments[] = $record;
+    $new_comments[] = $record;
   }
+
   $total_num_comment=db_query("SELECT count(*) from  comment")->fetchField();; 
-  $page_size = 10;
-  $start_index = 0;
-  $page_no = 0;
-  $last_index = 10;
-  for ($i = 0; $i<count($new_comments); $i= $i+$page_size) {
-    $page_comments[$page_no] = array_slice($new_comments,$start_index,$last_index);
-    $start_index = $start_index + $page_size;
-    $last_index = $last_index + $page_size;
-    $page_no++;
-  }
+
   $recent_comment['total'] = $total_num_comment;
-  $recent_comment['array'] = $page_comments[$page]; 
+  $recent_comment['array'] = $page_no; 
   return $recent_comment;
 }
 
