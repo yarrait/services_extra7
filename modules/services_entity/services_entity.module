@@ -5,22 +5,8 @@
  */
 function services_entity_services_resources() { 
   $resources = array();
-  $resources['content_type'] = content_type_resources();
-  $resources['entity_bundle'] = entity_bundle_resources();
-  $resources['form_content'] = form_content_resources();
-  return $resources;
-}
 
-function _content_type_resource_access($op = 'view', $args = array()) {
-  switch ($op) {
-    case 'view':
-      return user_access('administer content types');
-      break;
-  }
-}
-
-function content_type_resources() {
-  $resource = array(
+  $resources['content_type'] = array(
      'retrieve' => array(
         'callback' => '_content_type_resource_retrieve',
 	  'args' => array(
@@ -77,52 +63,8 @@ function content_type_resources() {
         'access arguments append' => TRUE,
       ),
   );
-  return $resource;
-}
 
-function _content_type_resource_retrieve($value){
-  $content_type = db_query("SELECT n.* FROM {node_type} n WHERE  n.type = :type", array(':type' => $value))->fetchAssoc();
-  return $content_type;  
-}
-
-function _content_type_resource_index($page, $fields, $parameters, $page_size){  
-  $content_type_data_select = db_select('node_type', 't')
-    ->orderBy('name', 'asc'); 
-  services_resource_build_index_query($content_type_data_select, $page, $fields, $parameters, $page_size, 'node');
-  $content_type_query = services_resource_execute_index_query($content_type_data_select);
-  $content_types_array = services_resource_build_index_list($content_type_query, 'node_type', 'type');
-  $content_types = array();
-  foreach($content_types_array as $key => $type) {
-    if(node_access('create', $type->type)) {
-       $content_types[] = $type;
-    }
-  } 
-  return $content_types;
-}
-
-/**
- * Gets access rules.
- *
- * @param $op
- *  $op - Permission requested
- * @return Boolean
- *  Boolean TRUE if the current user has the requested permission
- */
-function _entity_bundle_resource_access($op = 'view', $args = array()) {  
-  switch ($op) {
-    case 'view':
-      return user_access('administer content types');
-      break;
-  }
-}
-/**
- * Gets all resource definitions.
- *
- * @return array
- *  An array containing all resources.
- */
-function entity_bundle_resources() {
-  $resource = array(
+  $resources['entity_bundle'] = array(
      'retrieve' => array(
         'callback' => '_entity_bundle_resource_retrieve',
 	  'args' => array(
@@ -139,47 +81,7 @@ function entity_bundle_resources() {
         'access arguments append' => TRUE,
       ),
   );
-  return $resource;
-}
-
-function _entity_bundle_resource_retrieve($entity_type){ 
-  $type_data_select = entity_get_info($entity_type);
-  $bundle = $type_data_select['bundles'];
-  $result = array();
-  foreach ($bundle as $key => $value)
-  {
-    $type['type'] = $key;
-    $type['name'] = $value['label'];
-    $result[] = $type;
-  }
-  return $result;
-}
-
-/**
- * Gets access rules.
- *
- * @param $op
- *  $op - Permission requested
- * @return Boolean
- *  Boolean TRUE if the current user has the requested permission
- */
-function _form_content_resource_access($op = 'view', $args = array()) {  
-  switch ($op) {
-    case 'view':
-      return user_access('administer content types');
-      break;
-  }
-}
-
-
-/**
- * Gets all resource definitions.
- *
- * @return array
- *  An array containing all resources.
- */
-function form_content_resources() { 
-  $resource = array(
+  $resources['form_content'] = array(
     'retrieve' => array(
       'callback' => '_form_content_resources_retrieve',
         'args' => array(
@@ -218,7 +120,81 @@ function form_content_resources() {
         'access arguments append' => TRUE,
     ),
   );
-  return $resource;
+  return $resources;
+}
+
+function _content_type_resource_access($op = 'view', $args = array()) {
+  switch ($op) {
+    case 'view':
+      return user_access('administer content types');
+      break;
+  }
+}
+
+/**
+ * Retrive Content Type Info by passing the type
+ */
+function _content_type_resource_retrieve($type){
+  $content_type = node_type_get_type($type);
+  return $content_type;  
+}
+
+/**
+ * Retrive Content Types Info
+ * Need to check whether there is a need to pass all parameters or not
+ */
+function _content_type_resource_index($page, $fields, $parameters, $page_size){ 
+  $content_types = node_type_get_types();
+  foreach($content_types as $key => $value) {
+    $content_type[] = $value;
+  }
+
+  return $content_type;
+}
+
+/**
+ * Gets access rules.
+ *
+ * @param $op
+ *  $op - Permission requested
+ * @return Boolean
+ *  Boolean TRUE if the current user has the requested permission
+ */
+function _entity_bundle_resource_access($op = 'view', $args = array()) {  
+  switch ($op) {
+    case 'view':
+      return user_access('administer content types');
+      break;
+  }
+}
+
+function _entity_bundle_resource_retrieve($entity_type){ 
+  $type_data_select = entity_get_info($entity_type);
+  $bundle = $type_data_select['bundles'];
+  $result = array();
+  foreach ($bundle as $key => $value)
+  {
+    $type['type'] = $key;
+    $type['name'] = $value['label'];
+    $result[] = $type;
+  }
+  return $result;
+}
+
+/**
+ * Gets access rules.
+ *
+ * @param $op
+ *  $op - Permission requested
+ * @return Boolean
+ *  Boolean TRUE if the current user has the requested permission
+ */
+function _form_content_resource_access($op = 'view', $args = array()) {  
+  switch ($op) {
+    case 'view':
+      return user_access('administer content types');
+      break;
+  }
 }
 
 function _form_content_resources_index($entity_type, $bundle) {

@@ -5,24 +5,8 @@
  */
 function services_content_services_resources() { 
   $resources = array();
-  $resources['content'] = content_resources();
-  $resources['content_update'] = content_update_resources();
-  return $resources;
-}
 
-function _content_resource_access($op = 'view', $args = array()) {
- switch ($op) {
-    case 'view':
-     return user_access('administer nodes');
-     break;
-    case 'create':
-     return user_access('administer nodes');
-     break;
-    }
-}
-
-function content_resources() { 
-  $resource = array(
+  $resources['content'] = array(
     'retrieve' => array(
        'callback' => '_content_resource_retrieve',
          'args' => array(
@@ -93,13 +77,46 @@ function content_resources() {
         'access arguments append' => FALSE,
       ),
   );
-  return $resource;
+
+  $resources['content_update'] = array(
+    'create' => array(
+      'callback' => '_content_update_resource_create',
+        'args' => array(
+          array(
+            'name' => 'content_data',
+            'optional' => FALSE,
+            'source' => 'data',
+            'description' => 'The content data to update',
+            'type' => 'array',
+          ),
+        ),
+        'access callback' => '_content_update_resource_access',
+        'access arguments' => array('create'),
+        'access arguments append' => TRUE,
+      ),
+  );
+
+  return $resources;
 }
+
+function _content_resource_access($op = 'view', $args = array()) {
+ switch ($op) {
+    case 'view':
+     return user_access('administer nodes');
+     break;
+    case 'create':
+     return user_access('administer nodes');
+     break;
+    }
+}
+
+
 
 function _content_resource_retrieve($nid) {
   $node = node_load($nid);
-  if(empty($node))
-   return services_error('Node nid '. $nid .' not found', 404);
+  if (empty($node)) {
+    return services_error(t('Node not found'), 404);
+  }
 
   if ($node) {
     $uri = entity_uri('node', $node);
@@ -121,7 +138,7 @@ function _content_resource_index($page, $fields, $parameters, $page_size){
    
   $result = $query->execute();
   while($record = $result->fetchAssoc()){
-               $results[] = $record;
+    $results[] = $record;
   }
   $page_size = 10;
   $start_index = 0;
@@ -138,13 +155,13 @@ function _content_resource_index($page, $fields, $parameters, $page_size){
   return $content;
 }
 
-function _content_resource_create($node_data){ 
+function _content_resource_create($node_data) { 
   $return =array();
   $option = $node_data['node']['option'];
   $filter = $node_data['node']['filter'];
   $page = $node_data['node']['page'];
   $return =array();
-  if (!empty($option) && !empty($filter)){
+  if (!empty($option) && !empty($filter)) {
     if ($option=="status") {
       switch ($filter) {
         case "published":
@@ -250,15 +267,17 @@ function _content_resource_create($node_data){
    	  }   
         }
         else {
-          return services_error("There is no node with type ".$filter,406,null);
+          return services_error(t('There is no node with type @filter', array('@filter' => $filter)),406);
         }
       }   
     }
     else {
-      return services_error("node[option] or node[filter] field is requried", 406,array('form_errors' => "node[option] or node[filter] field is requried."));
+// Need to ask 
+      return services_error(t('node[option] or node[filter] is requried'), 406,array('form_errors' => "node[option] or node[filter] is requried."));
     }
-  if (empty($results))
-      return services_error("There is no post available for ".$filter, 404, null);
+  if (empty($results)) {
+      return services_error(t('There is no post available for @filter', array('@filter',$filter)), 404, null);
+  }
 
   $page_size = 10;
   $start_index = 0;
@@ -283,40 +302,20 @@ function _content_update_resource_access($op = 'view', $args = array()) {
   }
 }
 
-function content_update_resources() {
-  $resource = array(
-    'create' => array(
-      'callback' => '_content_update_resource_create',
-        'args' => array(
-          array(
-            'name' => 'content_data',
-            'optional' => FALSE,
-            'source' => 'data',
-            'description' => 'The content data to update',
-            'type' => 'array',
-          ),
-        ),
-        'access callback' => '_content_update_resource_access',
-        'access arguments' => array('create'),
-        'access arguments append' => TRUE,
-      ),
-  );
-  return $resource;
-}
 
-function _content_update_resource_create($content_data){  
+function _content_update_resource_create($content_data) {  
   module_load_include('inc', 'node', 'node.admin');
  
   $option = $content_data['option'];
-  if(empty($option) || empty($content_data['node']))
-   return services_error("option or nid field is requried" , 406, array('form_errors' => "option or nid field is requried."));
+  if(empty($option) || empty($content_data['node'])) {
+// Need to ask
+   return services_error(t('option or nid field is requried') , 406, array('form_errors' => "option or nid field is requried."));
+  }
 
-  if($option == 'publish' || $option == 'promote' || $option == 'sticky')
-  {
+  if($option == 'publish' || $option == 'promote' || $option == 'sticky') {
       $values = 1; 
   }
-  else if($option == 'unpublish' || $option == 'demote' || $option == 'unsticky')
-  {
+  else if($option == 'unpublish' || $option == 'demote' || $option == 'unsticky') {
       $values = 0;
   }
   $count_node = count($content_data['node']);
@@ -347,7 +346,7 @@ function _content_update_resource_create($content_data){
           $count_update_node++;
         }
         else {
-          return services_error("There is no option of this type ".$option, 406, null);   
+          return services_error(t('There is no option of this type @option', array('@option' => $option)), 406, null);   
         }
       }
       else {
@@ -355,11 +354,10 @@ function _content_update_resource_create($content_data){
       } 
     }
     else {
-      services_error('JSON format is not proper',400);
+      services_error(t('JSON format is not proper'),400);
     }
   }
-  if(!empty($delete_multi_node))
-  {
+  if(!empty($delete_multi_node)) {
      node_delete_multiple($delete_multi_node);
   }
   if ($count_update_node == $count_node) {
@@ -367,12 +365,11 @@ function _content_update_resource_create($content_data){
   }
   if (!empty($error_nid)) {
     $not_found_nid = implode(",",$error_nid);
-    return services_error("There is no node with id ".$not_found_nid , 406, null);
+    return services_error(t('There is no node with id @id', array('@id' => $not_found_nid)) , 406, null);
   }
 }
 
-function node_update($op, $values, $nid)
-{
+function node_update($op, $values, $nid) {
   db_update('node')->fields(array( 
     $op => $values,
   ))  

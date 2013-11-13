@@ -291,55 +291,14 @@ function _permission_module_user_resource_index($page, $fields, $parameters, $pa
   return $modules;
 }
 
-function _permission_module_user_resource_update($rid, $permission) {
+function _permission_module_user_resource_update($rid, $permissions) {
 
-  $permissions = $permission['perm']['enabled'];
-
-  if(empty($permission['perm']['module']) || empty($permission['perm']['enabled'])) {
-    return services_error(t('Module name or permission field is requried'), 406, array('form_errors' => t('Module name or permission field is requried')));
+  if (!$rid && empty($permissions)) {
+    return services_error(t('Role or Permission missing'), 406, array('form_errors' => t('Role or Permission missing')));
   }
 
-  $permissions = module_invoke($permission['perm']['module'], 'permission');
-
-  foreach ($permissions as $key =>$value) {
-    $module_permission[] = $key;
-  }
-
-  $query = db_select('role_permission', 'p')
-         -> fields('p',array('permission'))
-         -> condition('rid',$rid,'=');   
-
-  $result = $query->execute();
-
-  while ($record = $result->fetchAssoc()) {
-    $role_enabled_perm[]=$record['permission'];
-  }
-
-  if (!empty($role_enabled_perm)) {
-    $module_enabled_perm = array_intersect($role_enabled_perm ,$module_permission);
-    $perm_enable_diff = array_diff($permission['perm']['enabled'], $module_enabled_perm);
-    $perm_disable_diff = array_diff($module_enabled_perm, $permission['perm']['enabled']);
-  }
-
-  foreach ($perm_enable_diff as $key => $perm) {
-    $data = array(
-      'permission' => $perm,
-      'rid'        => $rid,
-      'module'     => $permission['perm']['module'],
-    );
-    drupal_write_record('role_permission', $data);
-  }
-
-  foreach ($perm_disable_diff as $key => $perm) {
-    db_delete('role_permission')
-      ->condition('rid', $rid)
-      ->condition('permission', $perm)
-      ->condition('module', $permission['perm']['module'])
-      ->execute();
-  }
-
-  $return['status_message'] = 'The changes have been saved.';
-  return $return;
+  user_role_change_permissions($rid, $permissions);
+  return array('status_message' => t('The changes have been saved.'));
 }
 
 function _user_update_resource_access($op = 'view', $args = array()) {
@@ -357,34 +316,26 @@ function _user_update_resource_create($user_data){
   $option=$user_data['option'];
   
   if(empty($option) || empty($user_data['user']))
-    return services_error("option or uid field is requried" ,406,array('form_errors' => "option or uid field is requried."));
+    return services_error(t('option or uid field is requried') ,406,array('form_errors' => "option or uid field is requried."));
 
   if($option == "block")
       $values = 0;
   if($option == "active")
       $values = 1;  
 
-  foreach ($user_data['user'] as $key => $value) {
-    if (is_numeric($key)) {
+  foreach ($user_data['user'] as $key => $value) { watchdog('Key', $key);
       $uid = $value['uid'];
-   //   $code = db_query("SELECT COUNT(*) FROM {users} u WHERE  u.uid = :uid", array(':uid' => $uid))->fetchField();
-      $user = user_load($uid);
-//      if ($code) {   
-      if($user) {
+      $account = user_load($uid); // Loading Account
+      if($account) {
         $total_uid[]=$uid;
         if ($uid != null && ($option=="block" || $option=="active" )) {
-          $data_update = db_update('users')
-            ->fields(array(
-            'status' => $values,
-          ))  
-          ->condition('uid', $uid, '=')
-          ->execute();
+          $edit = array(
+            'status' => $values
+          );
+          user_save($account, $edit);
           $update_user_total++;
         }
         else if ($uid != null && $option="delete") {
- /*         db_delete('users')
-            ->condition('uid', $uid)
-            ->execute(); */
           user_delete($uid);
            $update_user_total++;
         }
@@ -392,17 +343,13 @@ function _user_update_resource_create($user_data){
       else {
         $error_uid[] = $uid;
       }
-    }
-    else {
-      services_error('JSON format is not proper', 400);
-    }  
+  
   }
-  if ($update_user_total == $user_total){
     return TRUE;
-  }
   if (!empty($error_uid)) {
     $not_found_uid = implode(",",$error_uid);
-    return services_error("There is no user with id ".$not_found_uid ,406,null);
+//Need to ask
+    return services_error(t('User with id @id does not exists.', array('@id' => $not_found_uid)) ,406,null);
   }
 }  
 
@@ -421,16 +368,17 @@ function _user_filter_resource_create($user_data){
   $page = $user_data['user']['page'];
  
   if(empty($option) || empty($filter)) {
-    return services_error("option or filter field is requried" ,406,array('form_errors' => "option or uid field is requried."));
+// Need to ask 
+    return services_error(t('Option or filter field is requried.'), 406, array('form_errors' => t('Option or filter field is requried.')));
   }
   if ($option == "role") {
     $no_records = db_query("Select count(*) from users_roles r inner join users u on r.uid = u.uid where r.rid = :rid", array(':rid' => $filter))->fetchField();
-    $query = db_select('users_roles', 'ur')
-           -> innerJoin('users', 'u', '(ur.uid = u.uid)')
-           -> fields('ur',array('uid'))
-           -> condition('ur.rid',$filter,'=')
-           -> orderBy('ur.uid','DESC')
-           -> execute();
+    $query = db_select('users_roles', 'ur');
+    $query -> innerJoin('users', 'u', '(ur.uid = u.uid)');
+    $query -> fields('ur',array('uid'));
+    $query -> condition('ur.rid',$filter,'=');
+    $query -> orderBy('ur.uid','DESC');
+    $query -> execute();
     while ($record = $query->fetchAssoc()) {
       $uid_array[] = $record['uid'];
     }
@@ -551,7 +499,7 @@ function _user_filter_resource_create($user_data){
      }
   }
   if (empty($user_details)) {
-   return services_error("No users available.", 404);
+   return services_error(t('No users available.'), 404);
   }
 
   //@todo : use constants instead hardcoded values.
@@ -595,7 +543,7 @@ function _role_resource_index($page, $fields, $parameters, $page_size) {
 
 function _role_resource_create($role){
   if(empty($role)) //@todo : use t()
-    return services_error("role name filed is required", 406,array('form_errors' => "role[name] field is required."));
+    return services_error(t('role name filed is required'), 406,array('form_errors' => "role[name] field is required."));
 
   $role_name = $role['name'];
   $data = array(
